@@ -1,0 +1,6 @@
+{
+  "name": "Ruang Aplikasiku - LMS Olimpiade SMAN 1 PARDASUKA",
+  "description": "Aplikasi LMS & Ujian CBT Olimpiade Sains SMAN 1 Pardasuka dengan Generator Bank Soal Bloom & SOLO, Tracking Login 1 Device, dan Export Google Apps Script.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

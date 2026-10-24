@@ -1,0 +1,77 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128;
+    }
+
+    // Health check endpoint
+    match /test/{testId} {
+      allow get: if isValidId(testId);
+      allow list: if true;
+      allow write: if false;
+    }
+
+    // User profiles
+    match /users/{userId} {
+      allow get: if isValidId(userId);
+      allow list: if true;
+      allow create, update: if isValidId(userId)
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 100
+        && request.resource.data.role in ['student', 'teacher', 'admin'];
+      allow delete: if false;
+    }
+
+    // CBT Exam Packages
+    match /exams/{examId} {
+      allow get: if isValidId(examId);
+      allow list: if true;
+      allow create, update: if isValidId(examId)
+        && request.resource.data.title is string
+        && request.resource.data.title.size() <= 200
+        && request.resource.data.durationMinutes is number;
+      allow delete: if isValidId(examId);
+    }
+
+    // CBT Exam Submission Results
+    match /examResults/{resultId} {
+      allow get: if isValidId(resultId);
+      allow list: if true;
+      allow create: if isValidId(resultId)
+        && request.resource.data.examId is string
+        && request.resource.data.studentId is string
+        && request.resource.data.score is number;
+      allow update: if isValidId(resultId)
+        && request.resource.data.score is number;
+      allow delete: if false;
+    }
+
+    // Bimbingan Schedules
+    match /bimbinganSchedules/{scheduleId} {
+      allow get: if isValidId(scheduleId);
+      allow list: if true;
+      allow create, update: if isValidId(scheduleId)
+        && request.resource.data.title is string
+        && request.resource.data.subject is string;
+      allow delete: if isValidId(scheduleId);
+    }
+
+    // YouTube Learning Media Resources
+    match /learningMedia/{mediaId} {
+      allow get: if isValidId(mediaId);
+      allow list: if true;
+      allow create, update: if isValidId(mediaId)
+        && request.resource.data.title is string
+        && request.resource.data.title.size() <= 250
+        && request.resource.data.subject is string;
+      allow delete: if isValidId(mediaId);
+    }
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

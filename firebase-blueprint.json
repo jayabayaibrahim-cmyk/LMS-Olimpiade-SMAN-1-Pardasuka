@@ -1,0 +1,330 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile for OSN participant, teacher, or administrator",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for user"
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Full name of the user"
+        },
+        "nisnOrNip": {
+          "type": "string",
+          "maxLength": 30,
+          "description": "NISN for students or NIP for teachers"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["student", "teacher", "admin"],
+          "description": "User role access"
+        },
+        "subject": {
+          "type": "string",
+          "description": "OSN Subject specialty"
+        },
+        "grade": {
+          "type": "string",
+          "description": "Grade level"
+        },
+        "deviceToken": {
+          "type": "string",
+          "description": "Device token for 1-Device binding"
+        },
+        "deviceName": {
+          "type": "string",
+          "description": "Device hardware name"
+        },
+        "isDeviceLocked": {
+          "type": "boolean",
+          "description": "Device lock status"
+        },
+        "email": {
+          "type": "string",
+          "description": "User email address"
+        }
+      },
+      "required": ["id", "name", "nisnOrNip", "role"]
+    },
+    "ExamPacket": {
+      "title": "ExamPacket",
+      "description": "CBT Exam Packet configuration and question list",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for exam packet"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Title of the CBT exam"
+        },
+        "subject": {
+          "type": "string",
+          "description": "OSN field / subject"
+        },
+        "level": {
+          "type": "string",
+          "description": "Competition level"
+        },
+        "durationMinutes": {
+          "type": "number",
+          "description": "Exam duration in minutes"
+        },
+        "passingScore": {
+          "type": "number",
+          "description": "Passing grade threshold"
+        },
+        "penaltyMode": {
+          "type": "boolean",
+          "description": "OSN Scoring Penalty (+4, -1, 0)"
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the exam packet"
+        },
+        "shuffleQuestionsPerAccount": {
+          "type": "boolean",
+          "description": "Whether questions are uniquely shuffled per student account"
+        }
+      },
+      "required": ["id", "title", "subject", "durationMinutes"]
+    },
+    "ExamResult": {
+      "title": "ExamResult",
+      "description": "Detailed CBT examination outcome for a student attempt",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Result document ID"
+        },
+        "examId": {
+          "type": "string",
+          "description": "Associated Exam Packet ID"
+        },
+        "examTitle": {
+          "type": "string",
+          "description": "Title of the completed exam"
+        },
+        "subject": {
+          "type": "string",
+          "description": "OSN Subject"
+        },
+        "studentId": {
+          "type": "string",
+          "description": "Student unique ID"
+        },
+        "studentName": {
+          "type": "string",
+          "description": "Student full name"
+        },
+        "nisn": {
+          "type": "string",
+          "description": "Student NISN"
+        },
+        "submittedAt": {
+          "type": "string",
+          "description": "ISO timestamp of submission"
+        },
+        "attemptNumber": {
+          "type": "number",
+          "description": "Attempt counter (pengerjaan ke-n)"
+        },
+        "totalQuestions": {
+          "type": "number",
+          "description": "Total question count"
+        },
+        "answeredCount": {
+          "type": "number",
+          "description": "Number of answered questions"
+        },
+        "correctCount": {
+          "type": "number",
+          "description": "Correct answer count"
+        },
+        "wrongCount": {
+          "type": "number",
+          "description": "Incorrect answer count"
+        },
+        "unansweredCount": {
+          "type": "number",
+          "description": "Unanswered question count"
+        },
+        "score": {
+          "type": "number",
+          "description": "Calculated score"
+        },
+        "maxPossibleScore": {
+          "type": "number",
+          "description": "Maximum possible score"
+        },
+        "percentageScore": {
+          "type": "number",
+          "description": "Percentage score"
+        },
+        "predicate": {
+          "type": "string",
+          "description": "Performance predicate"
+        },
+        "tabSwitchViolations": {
+          "type": "number",
+          "description": "Tab switch / cheat violation attempts"
+        }
+      },
+      "required": ["id", "examId", "studentId", "score"]
+    },
+    "BimbinganSchedule": {
+      "title": "BimbinganSchedule",
+      "description": "OSN coaching and mentorship schedule",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Schedule unique ID"
+        },
+        "title": {
+          "type": "string",
+          "description": "Topic or title of mentorship"
+        },
+        "subject": {
+          "type": "string",
+          "description": "OSN Subject"
+        },
+        "mentorName": {
+          "type": "string",
+          "description": "Name of assigned teacher/mentor"
+        },
+        "mentorId": {
+          "type": "string",
+          "description": "Mentor user ID"
+        },
+        "date": {
+          "type": "string",
+          "description": "Scheduled date"
+        },
+        "timeStart": {
+          "type": "string",
+          "description": "Start time"
+        },
+        "timeEnd": {
+          "type": "string",
+          "description": "End time"
+        },
+        "location": {
+          "type": "string",
+          "description": "Room or online link"
+        },
+        "status": {
+          "type": "string",
+          "description": "Status"
+        }
+      },
+      "required": ["id", "title", "subject", "date"]
+    },
+    "LearningMedia": {
+      "title": "LearningMedia",
+      "description": "Educational YouTube learning media and video resources per subject",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique media ID"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 250,
+          "description": "Video title"
+        },
+        "subject": {
+          "type": "string",
+          "description": "OSN Subject"
+        },
+        "topic": {
+          "type": "string",
+          "description": "Topic or theme"
+        },
+        "youtubeUrl": {
+          "type": "string",
+          "description": "YouTube video URL"
+        },
+        "youtubeId": {
+          "type": "string",
+          "description": "11-character YouTube video ID"
+        },
+        "channelOrCreator": {
+          "type": "string",
+          "description": "Channel name or teacher"
+        },
+        "duration": {
+          "type": "string",
+          "description": "Duration"
+        },
+        "level": {
+          "type": "string",
+          "description": "Competition level"
+        },
+        "description": {
+          "type": "string",
+          "description": "Content description"
+        },
+        "addedBy": {
+          "type": "string",
+          "description": "Name or generator engine"
+        },
+        "aiEngine": {
+          "type": "string",
+          "description": "Gemini engine used"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp"
+        }
+      },
+      "required": ["id", "title", "subject", "youtubeUrl", "youtubeId"]
+    },
+    "TestConnection": {
+      "title": "TestConnection",
+      "description": "Health check connection document",
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "description": "Status message"
+        }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profiles and credentials"
+    },
+    "/exams/{examId}": {
+      "schema": "ExamPacket",
+      "description": "OSN CBT Exam Packages"
+    },
+    "/examResults/{resultId}": {
+      "schema": "ExamResult",
+      "description": "Student CBT Exam attempt records and scores"
+    },
+    "/bimbinganSchedules/{scheduleId}": {
+      "schema": "BimbinganSchedule",
+      "description": "Coaching and training schedules"
+    },
+    "/learningMedia/{mediaId}": {
+      "schema": "LearningMedia",
+      "description": "YouTube video learning media curated by teachers or Gemini"
+    },
+    "/test/{testId}": {
+      "schema": "TestConnection",
+      "description": "Test connection ping document"
+    }
+  }
+}

@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2a0845"/>
+      <stop offset="50%" stop-color="#140a28"/>
+      <stop offset="100%" stop-color="#0b0417"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#818cf8"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="url(#bg)"/>
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="none" stroke="url(#gold)" stroke-width="6" opacity="0.4"/>
+  
+  <!-- Atom orbits / Science icon -->
+  <ellipse cx="256" cy="256" rx="180" ry="60" fill="none" stroke="url(#cyanGrad)" stroke-width="6" opacity="0.5" transform="rotate(-30 256 256)"/>
+  <ellipse cx="256" cy="256" rx="180" ry="60" fill="none" stroke="url(#cyanGrad)" stroke-width="6" opacity="0.5" transform="rotate(30 256 256)"/>
+  
+  <!-- Graduation Cap -->
+  <path d="M256 140 L410 215 L256 290 L102 215 Z" fill="url(#gold)"/>
+  <path d="M165 248 L165 315 C165 350, 347 350, 347 315 L347 248" fill="none" stroke="url(#gold)" stroke-width="16" stroke-linecap="round"/>
+  <!-- Tassel -->
+  <path d="M380 230 L395 320 L385 330 L375 320 Z" fill="#f59e0b"/>
+  
+  <!-- Text Label -->
+  <text x="256" y="420" text-anchor="middle" font-family="sans-serif" font-weight="900" font-size="34" fill="#ffffff" letter-spacing="4">OSN PARDASUKA</text>
+  <text x="256" y="455" text-anchor="middle" font-family="sans-serif" font-weight="700" font-size="20" fill="#a855f7" letter-spacing="2">LMS &amp; CBT PORTAL</text>
+</svg>
