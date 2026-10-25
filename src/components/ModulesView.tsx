@@ -221,6 +221,8 @@ export const ModulesView: React.FC<ModulesViewProps> = ({
         count: genCount,
         topic: chosenTopic,
         questionType: genType,
+        reasoningLevel: 'sedang',
+        purpose: 'modul_osn',
         customPrompt: `Soal teragenda khusus modul materi OSN: "${activeModule.title}". Format soal: ${genType}. Sertakan kunci dan pembahasan mendalam.`,
         authorName: `Modul OSN (${currentUser.name})`,
       });

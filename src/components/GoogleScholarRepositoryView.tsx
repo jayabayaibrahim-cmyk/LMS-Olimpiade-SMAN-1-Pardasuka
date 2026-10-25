@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   GraduationCap,
   Search,
@@ -16,11 +16,17 @@ import {
   Building,
   Quote,
   Share2,
+  Database,
+  RefreshCw,
+  Check,
 } from 'lucide-react';
 import { OsnSubject, Question, UserProfile, BimbinganSchedule } from '../types';
 import {
   searchScholarArticles,
   buildGoogleScholarUrl,
+  pushScholarRepositoryToFirebase,
+  loadScholarRepositoryFromFirebase,
+  subscribeToScholarRepository,
 } from '../services/googleScholarRepositoryService';
 import { ScholarArticle } from '../data/scholarRepositoryData';
 
@@ -59,18 +65,64 @@ export const GoogleScholarRepositoryView: React.FC<GoogleScholarRepositoryViewPr
   const [selectedLevel, setSelectedLevel] = useState<string>('All');
   const [expandedArticleId, setExpandedArticleId] = useState<string | null>('GS-KIM-01');
   const [importedNotice, setImportedNotice] = useState<string | null>(null);
+  const [isSyncingFirebase, setIsSyncingFirebase] = useState(false);
+  const [repoArticles, setRepoArticles] = useState<ScholarArticle[]>([]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (userFixedSubject) {
       setSelectedSubject(userFixedSubject);
     }
   }, [userFixedSubject]);
 
-  const articles = searchScholarArticles({
-    query: searchQuery,
-    subject: selectedSubject,
-    level: selectedLevel,
-  });
+  // Load from Firebase Firestore on mount with static fallback
+  useEffect(() => {
+    loadScholarRepositoryFromFirebase().then((loaded) => {
+      if (loaded && loaded.length > 0) {
+        setRepoArticles(loaded);
+      }
+    });
+
+    const unsubscribe = subscribeToScholarRepository((updated) => {
+      if (updated && updated.length > 0) {
+        setRepoArticles(updated);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  const articles = searchScholarArticles(
+    {
+      query: searchQuery,
+      subject: selectedSubject,
+      level: selectedLevel,
+    },
+    repoArticles.length > 0 ? repoArticles : undefined
+  );
+
+  const handleSyncToFirebase = async () => {
+    setIsSyncingFirebase(true);
+    setImportedNotice(null);
+    try {
+      const res = await pushScholarRepositoryToFirebase();
+      if (res.success) {
+        setImportedNotice(
+          `Berhasil menyinkronkan ${res.count} artikel riset dan bank soal Google Scholar ke Firebase Firestore!`
+        );
+      } else {
+        setImportedNotice(
+          `Sinkronisasi tersimpan di cache lokal (Mode Mandiri GitHub / Vercel).`
+        );
+      }
+    } catch (e: any) {
+      setImportedNotice(`Sinkronisasi tersimpan di cache lokal.`);
+    } finally {
+      setIsSyncingFirebase(false);
+      setTimeout(() => setImportedNotice(null), 5000);
+    }
+  };
 
   const handleImportQuestions = (article: ScholarArticle, targetScheduleId?: string) => {
     if (article.questions && article.questions.length > 0) {
@@ -109,9 +161,15 @@ export const GoogleScholarRepositoryView: React.FC<GoogleScholarRepositoryViewPr
         <div className="absolute top-0 right-0 w-80 h-80 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-950/80 border border-blue-600/50 text-xs font-bold text-blue-200">
-              <GraduationCap className="w-4 h-4 text-blue-400" />
-              <span>Google Scholar Research Bank Soal & Academic Repository</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-950/80 border border-blue-600/50 text-xs font-bold text-blue-200">
+                <GraduationCap className="w-4 h-4 text-blue-400" />
+                <span>Google Scholar Research Repository Engine</span>
+              </div>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/50 text-[11px] font-bold text-emerald-300">
+                <Check className="w-3 h-3 text-emerald-400" />
+                Firebase • GitHub • Vercel Ready
+              </span>
             </div>
             <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
               Repositori Ilmiah Google Scholar{' '}
@@ -122,6 +180,7 @@ export const GoogleScholarRepositoryView: React.FC<GoogleScholarRepositoryViewPr
             <p className="text-xs sm:text-sm text-purple-200/80 leading-relaxed">
               Koleksi bank soal tingkat lanjut yang dirujuk dari publikasi ilmiah, jurnal pendidikan sains terindeks
               Google Scholar & Garuda, serta tim pembina olimpiade nasional (TOKI, TOBI, TOFI, TOMI, TOAI, TOGI).
+              Tersinkronisasi otomatis dengan Firebase Firestore serta kompatibel penuh dengan deployment GitHub Pages dan Vercel.
               {isStudent
                 ? ' Siswa dapat mengkaji teori riset, membaca problem set, dan menelaah pembahasan ilmiah.'
                 : ' Guru dapat langsung mengimpor butir soal ilmiah terverifikasi ke dalam Bank Soal dan Jadwal Bimbingan.'}
@@ -129,6 +188,17 @@ export const GoogleScholarRepositoryView: React.FC<GoogleScholarRepositoryViewPr
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            {!isStudent && (
+              <button
+                onClick={handleSyncToFirebase}
+                disabled={isSyncingFirebase}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-purple-700 hover:bg-purple-600 disabled:opacity-50 text-white text-xs font-bold shadow-lg shadow-purple-900/40 transition-all cursor-pointer"
+                title="Sinkronisasi seluruh artikel riset ke database Firebase Firestore"
+              >
+                <Database className={`w-4 h-4 ${isSyncingFirebase ? 'animate-spin' : ''}`} />
+                <span>{isSyncingFirebase ? 'Menyinkronkan...' : 'Sinkron ke Firebase'}</span>
+              </button>
+            )}
             <button
               onClick={() => handleOpenGoogleScholar(searchQuery || 'Olimpiade Sains Nasional Kimia Fisika Biologi')}
               className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-lg shadow-blue-900/40 transition-all cursor-pointer"

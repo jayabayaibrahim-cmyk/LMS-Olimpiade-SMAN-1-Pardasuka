@@ -41,6 +41,12 @@ import {
   saveExamPacketToFirestore,
   saveLearningMediaToFirestore,
   subscribeLearningMedia,
+  saveQuestionToFirestore,
+  saveMultipleQuestionsToFirestore,
+  saveScheduleToFirestore,
+  saveModuleToFirestore,
+  subscribeExamPackets,
+  syncInitialExamsToFirestore,
 } from './services/firebase';
 
 export default function App() {
@@ -110,7 +116,85 @@ export default function App() {
   const [isSchoolSettingsOpen, setIsSchoolSettingsOpen] = useState<boolean>(false);
 
   const [questions, setQuestions] = useState<Question[]>(INITIAL_QUESTIONS);
-  const [exams, setExams] = useState<ExamPacket[]>(INITIAL_EXAMS);
+  const [exams, setExams] = useState<ExamPacket[]>(() => {
+    try {
+      const saved = localStorage.getItem('osn_cbt_exams');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const savedMap = new Map<string, ExamPacket>();
+          parsed.forEach((e: ExamPacket) => savedMap.set(e.id, e));
+
+          const mergedDefaults = INITIAL_EXAMS.map((initEx) => {
+            const savedEx = savedMap.get(initEx.id);
+            if (savedEx) {
+              const hasQuestions = Array.isArray(savedEx.questions) && savedEx.questions.length > 0;
+              return {
+                ...initEx,
+                ...savedEx,
+                questions: hasQuestions ? savedEx.questions : initEx.questions,
+              };
+            }
+            return initEx;
+          });
+
+          const customExams = parsed.filter(
+            (e: ExamPacket) => !INITIAL_EXAMS.some((initEx) => initEx.id === e.id)
+          );
+          return [...mergedDefaults, ...customExams];
+        }
+      }
+    } catch (e) {
+      console.error('Error reading exams from localStorage:', e);
+    }
+    return INITIAL_EXAMS;
+  });
+
+  // Save exams to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('osn_cbt_exams', JSON.stringify(exams));
+    } catch (e) {
+      console.error('Error saving exams to localStorage:', e);
+    }
+  }, [exams]);
+
+  // Realtime synchronization of Exam Packets with Firebase Firestore
+  useEffect(() => {
+    syncInitialExamsToFirestore(INITIAL_EXAMS).catch((err) =>
+      console.warn('Sync initial exams warning:', err)
+    );
+
+    const unsubscribe = subscribeExamPackets((firestoreExams) => {
+      if (firestoreExams && firestoreExams.length > 0) {
+        setExams((prev) => {
+          const map = new Map<string, ExamPacket>();
+          prev.forEach((ex) => map.set(ex.id, ex));
+
+          firestoreExams.forEach((fsEx) => {
+            const existing = map.get(fsEx.id);
+            const validQuestions =
+              Array.isArray(fsEx.questions) && fsEx.questions.length > 0
+                ? fsEx.questions
+                : Array.isArray(existing?.questions) && existing.questions.length > 0
+                ? existing.questions
+                : INITIAL_EXAMS.find((ie) => ie.id === fsEx.id)?.questions || [];
+
+            map.set(fsEx.id, {
+              ...fsEx,
+              questions: validQuestions,
+            });
+          });
+          return Array.from(map.values());
+        });
+      }
+    });
+
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, []);
+
   const [bimbinganSchedules, setBimbinganSchedules] = useState<BimbinganSchedule[]>(
     INITIAL_BIMBINGAN_SCHEDULES
   );
@@ -263,6 +347,9 @@ export default function App() {
 
   const handleAddQuestion = (newQuestion: Question) => {
     setQuestions((prev) => [newQuestion, ...prev]);
+    saveQuestionToFirestore(newQuestion).catch((err) =>
+      console.warn('Firebase question sync warning:', err)
+    );
   };
 
   const handleDeleteQuestion = (id: string) => {
@@ -271,24 +358,37 @@ export default function App() {
 
   const handleAddBimbinganSchedule = (newSchedule: BimbinganSchedule) => {
     setBimbinganSchedules((prev) => [newSchedule, ...prev]);
+    saveScheduleToFirestore(newSchedule).catch((err) =>
+      console.warn('Firebase schedule sync warning:', err)
+    );
   };
 
   const handleAddQuestionsToSchedule = (scheduleId: string, newQuestions: Question[]) => {
     setBimbinganSchedules((prev) =>
       prev.map((s) => {
         if (s.id === scheduleId) {
-          return {
+          const updated = {
             ...s,
             coachingQuestions: [...s.coachingQuestions, ...newQuestions],
           };
+          saveScheduleToFirestore(updated).catch((err) =>
+            console.warn('Firebase schedule questions sync warning:', err)
+          );
+          return updated;
         }
         return s;
       })
+    );
+    saveMultipleQuestionsToFirestore(newQuestions).catch((err) =>
+      console.warn('Firebase multiple questions sync warning:', err)
     );
   };
 
   const handleAddModule = (newModule: OsnModule) => {
     setModules((prev) => [newModule, ...prev]);
+    saveModuleToFirestore(newModule).catch((err) =>
+      console.warn('Firebase module sync warning:', err)
+    );
   };
 
   const handleAddQuestionsToModule = (moduleId: string, newQuestions: Question[]) => {
@@ -296,13 +396,20 @@ export default function App() {
       prev.map((m) => {
         if (m.id === moduleId) {
           const existingQuestions = m.moduleQuestions || [];
-          return {
+          const updated = {
             ...m,
             moduleQuestions: [...existingQuestions, ...newQuestions],
           };
+          saveModuleToFirestore(updated).catch((err) =>
+            console.warn('Firebase module questions sync warning:', err)
+          );
+          return updated;
         }
         return m;
       })
+    );
+    saveMultipleQuestionsToFirestore(newQuestions).catch((err) =>
+      console.warn('Firebase multiple questions sync warning:', err)
     );
   };
 

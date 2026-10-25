@@ -27,8 +27,12 @@ export function shuffleQuestionsForAccount(
   userId: string,
   examId: string
 ): Question[] {
-  if (!questions || questions.length <= 1) {
-    return questions ? [...questions] : [];
+  const validQuestions = Array.isArray(questions)
+    ? questions.filter((q): q is Question => Boolean(q && typeof q === 'object'))
+    : [];
+
+  if (validQuestions.length <= 1) {
+    return [...validQuestions];
   }
 
   const seedKey = `${(userId || 'peserta').trim()}_${(examId || 'cbt').trim()}`;
@@ -40,7 +44,7 @@ export function shuffleQuestionsForAccount(
     return seed / 4294967296;
   };
 
-  const shuffled = [...questions];
+  const shuffled = [...validQuestions];
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(lcg() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
@@ -48,7 +52,9 @@ export function shuffleQuestionsForAccount(
 
   // Jika hasil acak secara kebetulan persis sama dengan urutan awal dan panjang > 1,
   // putar elemen pertama ke belakang agar dijamin tidak berurutan sama.
-  const isAllIdentical = shuffled.every((q, idx) => q.id === questions[idx].id);
+  const isAllIdentical = shuffled.every(
+    (q, idx) => q && validQuestions[idx] && q.id === validQuestions[idx].id
+  );
   if (isAllIdentical && shuffled.length > 1) {
     const first = shuffled.shift()!;
     shuffled.push(first);

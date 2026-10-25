@@ -19,6 +19,12 @@ import {
   GraduationCap,
   Calendar,
   BarChart3,
+  Key,
+  Eye,
+  EyeOff,
+  Cpu,
+  Zap,
+  X,
 } from 'lucide-react';
 import { QuestionAnalysisView } from './QuestionAnalysisView';
 import {
@@ -32,7 +38,16 @@ import {
 } from '../types';
 import { exportQuestionsToCsv, exportQuestionsToJson } from '../services/gasExport';
 import { GoogleScholarRepositoryView } from './GoogleScholarRepositoryView';
-import { generateOsnQuestions } from '../services/aiQuestionService';
+import {
+  generateOsnQuestions,
+  getSavedGeminiApiKey,
+  saveGeminiApiKey,
+  getSavedGeminiEngine,
+  saveGeminiEngine,
+  getSavedReasoningLevel,
+  saveReasoningLevel,
+  ReasoningLevel,
+} from '../services/aiQuestionService';
 
 interface AiQuestionGeneratorProps {
   questions: Question[];
@@ -173,6 +188,12 @@ export const AiQuestionGenerator: React.FC<AiQuestionGeneratorProps> = ({
   const [generatedList, setGeneratedList] = useState<Question[]>([]);
   const [generatorNotice, setGeneratorNotice] = useState<string | null>(null);
 
+  // Engine, Reasoning Level, & Custom API Key states
+  const [modelEngine, setModelEngine] = useState<string>(() => getSavedGeminiEngine());
+  const [reasoningLevel, setReasoningLevel] = useState<ReasoningLevel>(() => getSavedReasoningLevel());
+  const [customApiKey, setCustomApiKey] = useState<string>(() => getSavedGeminiApiKey());
+  const [showApiKey, setShowApiKey] = useState<boolean>(false);
+
   useEffect(() => {
     if (selectedSubjectDefault) {
       setSubject(selectedSubjectDefault);
@@ -239,6 +260,9 @@ export const AiQuestionGenerator: React.FC<AiQuestionGeneratorProps> = ({
         questionType,
         customPrompt,
         authorName: currentUser?.name || 'AI Pembina SMAN 1 Pardasuka',
+        modelEngine,
+        reasoningLevel,
+        apiKey: customApiKey,
       });
 
       if (result.success && Array.isArray(result.questions) && result.questions.length > 0) {
@@ -247,11 +271,11 @@ export const AiQuestionGenerator: React.FC<AiQuestionGeneratorProps> = ({
         if (targetBimbinganId && onAddQuestionsToSchedule) {
           onAddQuestionsToSchedule(targetBimbinganId, result.questions);
           setGeneratorNotice(
-            `Soal berhasil dirangkai dan dikaitkan khusus ke Jadwal Bimbingan yang dipilih!`
+            `Soal berhasil dirangkai menggunakan Engine ${modelEngine === 'gemini-4-argon' ? 'Gemini 4 Argon' : 'Gemini 3.8 Flash'} (Penalaran: ${reasoningLevel.toUpperCase()}) dan dikaitkan khusus ke Jadwal Bimbingan!`
           );
         } else {
           setGeneratorNotice(
-            result.note || 'Soal berhasil dirangkai sesuai Taksonomi Bloom & SOLO SMAN 1 Pardasuka.'
+            result.note || `Soal berhasil dirangkai dengan Engine ${modelEngine === 'gemini-4-argon' ? 'Gemini 4 Argon' : 'Gemini 3.8 Flash'} (Penalaran: ${reasoningLevel.toUpperCase()}) sesuai Taksonomi Bloom & SOLO.`
           );
         }
       } else {
@@ -407,6 +431,167 @@ export const AiQuestionGenerator: React.FC<AiQuestionGeneratorProps> = ({
                 <p className="text-purple-300/80 leading-normal">
                   Generator AI ini dikhususkan untuk merangkai bahan kajian & latihan pada Jadwal Bimbingan (Bukan untuk CBT). Soal Ujian CBT disusun oleh Guru saat menjadwalkan Ujian CBT.
                 </p>
+              </div>
+
+              {/* Panel Engine AI Gemini, Penalaran & API Key */}
+              <div className="p-3.5 rounded-xl bg-[#130926] border border-purple-700/60 space-y-3 shadow-inner">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-white flex items-center gap-1.5 text-xs">
+                    <Cpu className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Engine AI & Penalaran (Reasoning)</span>
+                  </label>
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                      modelEngine === 'gemini-4-argon'
+                        ? 'bg-cyan-950 text-cyan-300 border-cyan-500/60 shadow-sm'
+                        : 'bg-purple-950 text-purple-300 border-purple-700/60'
+                    }`}
+                  >
+                    {modelEngine === 'gemini-4-argon' ? 'Gemini 4 Argon' : 'Gemini 3.8 Flash'}
+                  </span>
+                </div>
+
+                {/* Engine Selector Buttons */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModelEngine('gemini-3.8-flash');
+                      saveGeminiEngine('gemini-3.8-flash');
+                    }}
+                    className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer flex flex-col gap-0.5 ${
+                      modelEngine === 'gemini-3.8-flash'
+                        ? 'bg-purple-600/90 border-purple-400 text-white shadow-md'
+                        : 'bg-[#0f071d] border-purple-900/60 text-purple-300 hover:border-purple-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-xs">Gemini 3.8 Flash</span>
+                      {modelEngine === 'gemini-3.8-flash' && <Check className="w-3 h-3 text-white" />}
+                    </div>
+                    <span className="text-[10px] opacity-80">Standar & Cepat</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModelEngine('gemini-4-argon');
+                      saveGeminiEngine('gemini-4-argon');
+                    }}
+                    className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer flex flex-col gap-0.5 ${
+                      modelEngine === 'gemini-4-argon'
+                        ? 'bg-gradient-to-r from-cyan-600 to-purple-600 border-cyan-300 text-white shadow-lg'
+                        : 'bg-[#0f071d] border-purple-900/60 text-purple-300 hover:border-cyan-700/60'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-xs flex items-center gap-1">
+                        <span>Gemini 4 Argon</span>
+                        <Sparkles className="w-2.5 h-2.5 text-amber-300" />
+                      </span>
+                      {modelEngine === 'gemini-4-argon' && <Check className="w-3 h-3 text-white" />}
+                    </div>
+                    <span className="text-[10px] opacity-80">Penalaran HOTS Mendalam</span>
+                  </button>
+                </div>
+
+                {/* Tingkat Penalaran (Reasoning Level: Rendah, Sedang, Tinggi) */}
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-purple-200 flex items-center gap-1">
+                      <Zap className="w-3 h-3 text-amber-400" />
+                      <span>Tingkat Penalaran (Reasoning):</span>
+                    </span>
+                    <span className="text-[10px] text-amber-300 font-bold uppercase">
+                      {reasoningLevel === 'rendah' ? 'Rendah' : reasoningLevel === 'tinggi' ? 'Tinggi' : 'Sedang'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {(['rendah', 'sedang', 'tinggi'] as ReasoningLevel[]).map((r) => (
+                      <button
+                        type="button"
+                        key={r}
+                        onClick={() => {
+                          setReasoningLevel(r);
+                          saveReasoningLevel(r);
+                        }}
+                        className={`py-1.5 px-2 rounded-lg text-[11px] font-bold text-center border transition-all cursor-pointer capitalize ${
+                          reasoningLevel === r
+                            ? 'bg-gradient-to-r from-amber-600 to-purple-600 border-amber-400 text-white shadow'
+                            : 'bg-[#100720] border-purple-900/60 text-purple-300 hover:border-purple-700'
+                        }`}
+                      >
+                        {r === 'rendah' ? 'Rendah' : r === 'sedang' ? 'Sedang' : 'Tinggi'}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-purple-300/70 leading-tight">
+                    {reasoningLevel === 'rendah' && '• Rendah: Minim latensi, penyusunan soal lebih kilat.'}
+                    {reasoningLevel === 'sedang' && '• Sedang (Seimbang): Kedalaman penalaran optimal untuk olimpiade sains.'}
+                    {reasoningLevel === 'tinggi' && '• Tinggi (Maksimal): Penalaran analisis bertahap untuk soal HOTS dan dekomposisi mendalam.'}
+                  </p>
+                </div>
+
+                {/* API Key Input Field */}
+                <div className="pt-2 border-t border-purple-900/40 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-semibold text-purple-200 flex items-center gap-1">
+                      <Key className="w-3 h-3 text-emerald-400" />
+                      <span>Gemini API Key:</span>
+                    </label>
+                    <span
+                      className={`text-[10px] font-bold px-1.5 py-0.2 rounded border ${
+                        customApiKey
+                          ? 'bg-emerald-950 text-emerald-300 border-emerald-700/60'
+                          : 'bg-purple-950 text-purple-300 border-purple-800/60'
+                      }`}
+                    >
+                      {customApiKey ? 'Kunci Kustom Aktif' : 'Default Server Key'}
+                    </span>
+                  </div>
+
+                  <div className="relative">
+                    <input
+                      type={showApiKey ? 'text' : 'password'}
+                      value={customApiKey}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setCustomApiKey(val);
+                        saveGeminiApiKey(val);
+                      }}
+                      placeholder="Default server, atau masukkan AIzaSy..."
+                      className="w-full bg-[#100720] border border-purple-700/60 rounded-xl pl-3 pr-16 py-1.5 text-white text-[11px] font-mono focus:ring-1 focus:ring-purple-400 focus:outline-none"
+                    />
+                    <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setShowApiKey(!showApiKey)}
+                        className="p-1 text-purple-400 hover:text-white transition-colors cursor-pointer"
+                        title={showApiKey ? 'Sembunyikan' : 'Tampilkan'}
+                      >
+                        {showApiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                      {customApiKey && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCustomApiKey('');
+                            saveGeminiApiKey('');
+                          }}
+                          className="p-1 text-purple-400 hover:text-rose-400 transition-colors cursor-pointer"
+                          title="Hapus Kunci Kustom"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-purple-300/60 block">
+                    {customApiKey
+                      ? 'Menggunakan API Key kustom Anda (tersimpan aman di peramban).'
+                      : 'Menggunakan API Key otomatis dari server (process.env.GEMINI_API_KEY).'}
+                  </span>
+                </div>
               </div>
 
               {/* Destination: Bimbingan Schedule */}
@@ -631,9 +816,22 @@ export const AiQuestionGenerator: React.FC<AiQuestionGeneratorProps> = ({
           <div className="lg:col-span-7 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-amber-400" /> Hasil Penyusunan Butir Soal AI
-                </h3>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-amber-400" /> Hasil Penyusunan Butir Soal AI
+                  </h3>
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${
+                      modelEngine === 'gemini-4-argon'
+                        ? 'bg-cyan-950 text-cyan-300 border-cyan-500/60 shadow-sm'
+                        : 'bg-purple-950 text-purple-300 border-purple-700/60'
+                    }`}
+                  >
+                    <Cpu className="w-3 h-3 text-cyan-400" />
+                    <span>{modelEngine === 'gemini-4-argon' ? 'Gemini 4 Argon' : 'Gemini 3.8 Flash'}</span>
+                    <span className="text-amber-400 font-semibold capitalize">• Penalaran: {reasoningLevel}</span>
+                  </span>
+                </div>
                 <p className="text-xs text-purple-300/70">
                   Review butir soal, periksa pembahasan, lalu simpan ke Bank Soal Sekolah
                 </p>
