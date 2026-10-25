@@ -31,6 +31,7 @@ import {
   CompetitionLevel,
 } from '../types';
 import { printOsnModulePdf } from '../services/pdfPrintService';
+import { generateOsnQuestions } from '../services/aiQuestionService';
 
 interface ModulesViewProps {
   modules: OsnModule[];
@@ -212,52 +213,27 @@ export const ModulesView: React.FC<ModulesViewProps> = ({
     const chosenTopic = genTopic.trim() || activeModule.subtopics[0] || activeModule.title;
 
     try {
-      const response = await fetch('/api/ai/generate-questions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subject: activeModule.subject,
-          level: genLevel,
-          bloomTaxonomy: genBloom,
-          soloTaxonomy: genSolo,
-          count: genCount,
-          topic: chosenTopic,
-          questionType: genType,
-          customPrompt: `Soal teragenda khusus modul materi OSN: "${activeModule.title}". Format soal: ${genType}. Sertakan kunci dan pembahasan mendalam.`,
-        }),
+      const result = await generateOsnQuestions({
+        subject: activeModule.subject,
+        level: genLevel,
+        bloomTaxonomy: genBloom,
+        soloTaxonomy: genSolo,
+        count: genCount,
+        topic: chosenTopic,
+        questionType: genType,
+        customPrompt: `Soal teragenda khusus modul materi OSN: "${activeModule.title}". Format soal: ${genType}. Sertakan kunci dan pembahasan mendalam.`,
+        authorName: `Modul OSN (${currentUser.name})`,
       });
 
-      const data = await response.json();
-      if (data.success && Array.isArray(data.questions)) {
-        const mappedQuestions: Question[] = data.questions.map((q: any, idx: number) => ({
-          id: `MOD-Q-${activeModule.id}-${Date.now()}-${idx}`,
-          subject: activeModule.subject,
-          topic: chosenTopic,
-          level: genLevel,
-          difficulty: 'HOTS / Sulit',
-          bloomLevel: q.bloomLevel || genBloom,
-          soloLevel: q.soloLevel || genSolo,
-          questionText: q.questionText,
-          questionType: q.questionType || genType,
-          formulaOrContext: q.formulaOrContext,
-          options: q.options || (genType !== 'esai' ? ['A', 'B', 'C', 'D', 'E'] : []),
-          correctAnswerIndex: typeof q.correctAnswerIndex === 'number' ? q.correctAnswerIndex : 0,
-          explanation: q.explanation || 'Pembahasan ilmiah modul bimbingan.',
-          hint: q.hint,
-          diagramSvg: q.diagramSvg,
-          imageCaption: q.imageCaption,
-          sampleEssayAnswer: q.sampleEssayAnswer,
-          rubricOrKeyPoints: q.rubricOrKeyPoints,
-          author: `Modul OSN (${currentUser.name})`,
-          createdAt: new Date().toISOString().split('T')[0],
-        }));
-
-        onAddQuestionsToModule(activeModule.id, mappedQuestions);
+      if (result.success && Array.isArray(result.questions) && result.questions.length > 0) {
+        onAddQuestionsToModule(activeModule.id, result.questions);
         setGenSuccessNotice(
-          `Berhasil menyusun & mengagendakan ${mappedQuestions.length} butir soal ${genType.toUpperCase()} ke dalam modul ini!`
+          `Berhasil menyusun & mengagendakan ${result.questions.length} butir soal ${genType.toUpperCase()} ke dalam modul ini!`
         );
         setShowQuestionGenBox(false);
         setTimeout(() => setGenSuccessNotice(null), 4000);
+      } else {
+        setGenSuccessNotice('Gagal merangkai soal modul. Silakan coba kembali.');
       }
     } catch (err) {
       console.error(err);

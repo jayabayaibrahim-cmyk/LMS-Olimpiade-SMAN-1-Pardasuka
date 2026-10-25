@@ -32,6 +32,7 @@ import {
 } from '../types';
 import { exportQuestionsToCsv, exportQuestionsToJson } from '../services/gasExport';
 import { GoogleScholarRepositoryView } from './GoogleScholarRepositoryView';
+import { generateOsnQuestions } from '../services/aiQuestionService';
 
 interface AiQuestionGeneratorProps {
   questions: Question[];
@@ -228,62 +229,37 @@ export const AiQuestionGenerator: React.FC<AiQuestionGeneratorProps> = ({
     setGeneratorNotice(null);
 
     try {
-      const response = await fetch('/api/ai/generate-questions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subject,
-          level,
-          bloomTaxonomy,
-          soloTaxonomy,
-          count,
-          topic,
-          questionType,
-          customPrompt,
-        }),
+      const result = await generateOsnQuestions({
+        subject,
+        level,
+        bloomTaxonomy,
+        soloTaxonomy,
+        count,
+        topic,
+        questionType,
+        customPrompt,
+        authorName: currentUser?.name || 'AI Pembina SMAN 1 Pardasuka',
       });
 
-      const data = await response.json();
-      if (data.success && Array.isArray(data.questions)) {
-        const mapped: Question[] = data.questions.map((q: any, idx: number) => ({
-          id: `GEN-${Date.now()}-${idx}`,
-          subject,
-          topic: topic || 'Olimpiade Sains',
-          level,
-          difficulty: bloomTaxonomy.includes('C5') || bloomTaxonomy.includes('C6') ? 'HOTS / Sulit' : 'Sedang',
-          bloomLevel: q.bloomLevel || bloomTaxonomy,
-          soloLevel: q.soloLevel || soloTaxonomy,
-          questionText: q.questionText,
-          questionType: q.questionType || questionType,
-          formulaOrContext: q.formulaOrContext,
-          options: q.options || (questionType !== 'esai' ? ['A', 'B', 'C', 'D', 'E'] : []),
-          correctAnswerIndex: typeof q.correctAnswerIndex === 'number' ? q.correctAnswerIndex : 0,
-          explanation: q.explanation || 'Pembahasan terstruktur langkah demi langkah.',
-          hint: q.hint,
-          diagramSvg: q.diagramSvg,
-          imageCaption: q.imageCaption,
-          sampleEssayAnswer: q.sampleEssayAnswer,
-          rubricOrKeyPoints: q.rubricOrKeyPoints,
-          author: 'AI Gemini (Pembina SMAN 1 Pardasuka)',
-          createdAt: new Date().toISOString().split('T')[0],
-        }));
-
-        setGeneratedList(mapped);
+      if (result.success && Array.isArray(result.questions) && result.questions.length > 0) {
+        setGeneratedList(result.questions);
 
         if (targetBimbinganId && onAddQuestionsToSchedule) {
-          onAddQuestionsToSchedule(targetBimbinganId, mapped);
+          onAddQuestionsToSchedule(targetBimbinganId, result.questions);
           setGeneratorNotice(
             `Soal berhasil dirangkai dan dikaitkan khusus ke Jadwal Bimbingan yang dipilih!`
           );
         } else {
-          setGeneratorNotice(data.note || 'Soal berhasil dirangkai sesuai Taksonomi Bloom & SOLO.');
+          setGeneratorNotice(
+            result.note || 'Soal berhasil dirangkai sesuai Taksonomi Bloom & SOLO SMAN 1 Pardasuka.'
+          );
         }
       } else {
         setGeneratorNotice('Gagal merangkai soal. Silakan coba lagi.');
       }
     } catch (err) {
-      console.error(err);
-      setGeneratorNotice('Terjadi kendala jaringan saat menghubungi server generator.');
+      console.error('Error generating questions:', err);
+      setGeneratorNotice('Terjadi kendala saat merangkai soal. Silakan coba kembali.');
     } finally {
       setIsLoading(false);
     }
