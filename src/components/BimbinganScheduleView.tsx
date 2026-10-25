@@ -29,6 +29,7 @@ import {
   Question,
 } from '../types';
 import { printBimbinganSchedulePdf } from '../services/pdfPrintService';
+import { generateOsnQuestions } from '../services/aiQuestionService';
 
 interface BimbinganScheduleViewProps {
   schedules: BimbinganSchedule[];
@@ -142,51 +143,28 @@ export const BimbinganScheduleView: React.FC<BimbinganScheduleViewProps> = ({
     setGenSuccessMsg(null);
 
     try {
-      const response = await fetch('/api/ai/generate-questions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subject: schedule.subject,
-          level: 'Kabupaten (OSN-K)',
-          bloomTaxonomy: schedule.targetBloom,
-          soloTaxonomy: schedule.targetSolo,
-          count: genCount,
-          topic: schedule.topic,
-          questionType: genQuestionType,
-          customPrompt: `Soal khusus bimbingan dan pembahasan intensif kelas bimbingan OSN SMAN 1 Pardasuka (Bukan untuk CBT). Format soal: ${genQuestionType}. ${
-            genQuestionType === 'bergambar' ? 'Wajib sertakan diagram skema visual ilmiah (diagramSvg).' : ''
-          } Catatan bimbingan: ${schedule.notes || ''}`,
-        }),
+      const result = await generateOsnQuestions({
+        subject: schedule.subject,
+        level: 'Kabupaten (OSN-K)',
+        bloomTaxonomy: schedule.targetBloom,
+        soloTaxonomy: schedule.targetSolo,
+        count: genCount,
+        topic: schedule.topic,
+        questionType: genQuestionType,
+        customPrompt: `Soal khusus bimbingan dan pembahasan intensif kelas bimbingan OSN SMAN 1 Pardasuka (Bukan untuk CBT). Format soal: ${genQuestionType}. ${
+          genQuestionType === 'bergambar' ? 'Wajib sertakan diagram skema visual ilmiah (diagramSvg).' : ''
+        } Catatan bimbingan: ${schedule.notes || ''}`,
+        authorName: `AI Pembina (${schedule.mentorName})`,
       });
 
-      const data = await response.json();
-      if (data.success && Array.isArray(data.questions)) {
-        const mappedQuestions: Question[] = data.questions.map((q: any, idx: number) => ({
-          id: `COACH-${schedule.id}-${Date.now()}-${idx}`,
-          subject: schedule.subject,
-          topic: schedule.topic,
-          level: 'Kabupaten (OSN-K)',
-          difficulty: 'HOTS / Sulit',
-          bloomLevel: q.bloomLevel || schedule.targetBloom,
-          soloLevel: q.soloLevel || schedule.targetSolo,
-          questionText: q.questionText,
-          questionType: q.questionType || genQuestionType,
-          formulaOrContext: q.formulaOrContext,
-          options: q.options || (genQuestionType !== 'esai' ? ['A', 'B', 'C', 'D', 'E'] : []),
-          correctAnswerIndex: typeof q.correctAnswerIndex === 'number' ? q.correctAnswerIndex : 0,
-          explanation: q.explanation || 'Pembahasan ilmiah mendalam untuk sesi bimbingan.',
-          hint: q.hint,
-          diagramSvg: q.diagramSvg,
-          imageCaption: q.imageCaption,
-          sampleEssayAnswer: q.sampleEssayAnswer,
-          rubricOrKeyPoints: q.rubricOrKeyPoints,
-          author: `AI Pembina (${schedule.mentorName})`,
-          createdAt: new Date().toISOString().split('T')[0],
-        }));
-
-        onAddQuestionsToSchedule(schedule.id, mappedQuestions);
-        setGenSuccessMsg(`Berhasil menyusun ${mappedQuestions.length} butir soal ${genQuestionType.toUpperCase()} khusus materi bimbingan ini!`);
+      if (result.success && Array.isArray(result.questions) && result.questions.length > 0) {
+        onAddQuestionsToSchedule(schedule.id, result.questions);
+        setGenSuccessMsg(
+          `Berhasil menyusun ${result.questions.length} butir soal ${genQuestionType.toUpperCase()} khusus materi bimbingan ini!`
+        );
         setTimeout(() => setGenSuccessMsg(null), 3500);
+      } else {
+        setGenSuccessMsg('Gagal menyusun soal bimbingan. Silakan coba lagi.');
       }
     } catch (err) {
       console.error(err);

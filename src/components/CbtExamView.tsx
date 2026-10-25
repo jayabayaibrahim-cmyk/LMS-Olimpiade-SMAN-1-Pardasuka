@@ -29,6 +29,7 @@ import { printCbtResultPdf } from '../services/pdfPrintService';
 import { QuestionAnalysisView } from './QuestionAnalysisView';
 import { CbtExamRecapModal } from './CbtExamRecapModal';
 import { shuffleQuestionsForAccount, shuffleQuestionsArray } from '../utils/shuffleUtils';
+import { explainQuestionRemediation } from '../services/aiQuestionService';
 
 interface CbtExamViewProps {
   exams: ExamPacket[];
@@ -331,25 +332,28 @@ export const CbtExamView: React.FC<CbtExamViewProps> = ({
     try {
       const studentAnsIdx = answers[q.id];
       const studentAnsText =
-        studentAnsIdx !== undefined ? q.options[studentAnsIdx] : 'Tidak dijawab (Kosong)';
-      const correctAnsText = q.options[q.correctAnswerIndex];
+        studentAnsIdx !== undefined && q.options[studentAnsIdx]
+          ? q.options[studentAnsIdx]
+          : 'Tidak dijawab (Kosong)';
+      const correctAnsText =
+        q.options && q.correctAnswerIndex >= 0 && q.options[q.correctAnswerIndex]
+          ? q.options[q.correctAnswerIndex]
+          : 'Kunci jawaban terlampir pada lembar pembahasan';
 
-      const res = await fetch('/api/ai/explain-question', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          questionText: q.questionText,
-          studentAnswer: studentAnsText,
-          correctAnswer: correctAnsText,
-          subject: q.subject,
-        }),
+      const explanation = await explainQuestionRemediation({
+        questionText: q.questionText,
+        studentAnswer: studentAnsText,
+        correctAnswer: correctAnsText,
+        subject: q.subject,
+        originalExplanation: q.explanation,
       });
 
-      const data = await res.json();
-      setAiRemediationText(data.explanation || 'Pembahasan berhasil dimuat.');
+      setAiRemediationText(explanation);
     } catch (e) {
       console.error(e);
-      setAiRemediationText('Gagal memuat konsultasi AI.');
+      setAiRemediationText(
+        q.explanation || 'Pembahasan ilmiah dapat dipelajari melalui buku panduan silabus OSN.'
+      );
     } finally {
       setIsAiLoading(false);
     }

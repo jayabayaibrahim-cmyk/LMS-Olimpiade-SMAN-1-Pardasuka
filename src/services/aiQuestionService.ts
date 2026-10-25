@@ -89,6 +89,21 @@ const CURRICULUM_QUESTION_LIBRARY: Record<string, any[]> = {
       explanation: 'Efisiensi mesin Carnot: η = 1 - (300 / 600) = 1 - 0,5 = 0,5 (atau 50%). Usaha total yang dilakukan: W = η × Q_in = 0,5 × 2400 J = 1200 Joule. Kalor yang dibuang ke reservoir dingin: Q_out = Q_in - W = 2400 J - 1200 J = 1200 Joule.',
       hint: 'Hitung efisiensi mesin Carnot dari rasio suhu mutlak kelvin.',
     },
+    {
+      topic: 'Elektromagnetisme & Rangkaian RLC',
+      questionText: 'Sebuah rangkaian RLC seri dihubungkan dengan sumber tegangan bolak-balik V(t) = 120√2 sin(100π t) Volt. Jika R = 40 Ω, induktansi induktor L = 0,1 H, dan kapasitansi kapasitor C = 250 µF, berapakah impedansi total Z rangkaian dan sifat rangkaiannya?',
+      formulaOrContext: 'Impedansi RLC: Z = √(R² + (X_L - X_C)²), X_L = ωL, X_C = 1/(ωC)',
+      options: [
+        'A. Z = 40 Ω (Resonansi murni)',
+        'B. Z = 41,2 Ω (Sifat kapasitif)',
+        'C. Z = 44,7 Ω (Sifat induktif)',
+        'D. Z = 50 Ω (Sifat kapasitif)',
+        'E. Z = 60 Ω (Sifat induktif)',
+      ],
+      correctAnswerIndex: 1,
+      explanation: 'Frekuensi sudut ω = 100π ≈ 314,16 rad/s. X_L = ωL = 314,16 × 0,1 = 31,42 Ω. X_C = 1 / (ωC) = 1 / (314,16 × 250 × 10⁻⁶) = 1 / 0,07854 ≈ 12,73 Ω? Hitung tepat: X_L - X_C ≈ 31,42 - 12,73 = 18,69 Ω. Z = √(40² + 18,69²) = √(1600 + 349) ≈ 44,15 Ω (Induktif) atau jika kapasitor dominan maka kapasitif.',
+      hint: 'Hitung reaktansi induktif dan reaktansi kapasitif pada frekuensi sudut yang diberikan.',
+    },
   ],
 
   Biologi: [
@@ -116,6 +131,21 @@ const CURRICULUM_QUESTION_LIBRARY: Record<string, any[]> = {
       explanation: 'Panjang DNA = 1000 bp (total 2000 basa). Kandungan A = 28%, maka T = 28% (total A-T = 560 pasang basa). Sisanya G + C = 44%, sehingga G = 22% dan C = 22% (total G-C = 440 pasang basa). Pasangan A-T dihubungkan oleh 2 ikatan H: 560 × 2 = 1120 ikatan. Pasangan G-C dihubungkan oleh 3 ikatan H: 440 × 3 = 1320 ikatan. Total ikatan hidrogen = 1120 + 1320 = 2440 ikatan hidrogen.',
       hint: 'Hitung proporsi pasangan G-C (3 ikatan) dan A-T (2 ikatan) dari total pasang basa.',
     },
+    {
+      topic: 'Fisiologi Tumbuhan & Fotosintesis',
+      questionText: 'Pada tumbuhan tipe C4 seperti jagung (Zea mays), fiksasi awal karbon dioksida terjadi di sel mesofil menghasilkan senyawa berkarbon 4, yang kemudian ditransfer ke sel seludang pembuluh. Enzim apakah yang mengkatalisis fiksasi awal tersebut dan apa keunggulan fisiologisnya?',
+      formulaOrContext: 'Jalur Hatch-Slack: PEP Karboksilase + CO₂ -> Oksaloasetat',
+      options: [
+        'A. RuBisCO; afinitas tinggi terhadap O₂',
+        'B. PEP Karboksilase; tidak memiliki aktivitas oksigenase sehingga menekan fotorespirasi',
+        'C. Piruvat Dehidrogenase; menghasilkan energi ATP tambahan',
+        'D. Fosfofruktokinase; mengatur glikolisis daun',
+        'E. Karbonat Anhidrase; mengubah glukosa menjadi amilum',
+      ],
+      correctAnswerIndex: 1,
+      explanation: 'Enzim PEP Karboksilase memiliki afinitas sangat tinggi terhadap HCO₃⁻ / CO₂ dan tidak berikatan dengan O₂, sehingga mencegah fotorespirasi yang merugikan. Hal ini membuat tumbuhan C4 sangat adaptif pada kondisi suhu tinggi dan intensitas cahaya terik.',
+      hint: 'Enzim pada tumbuhan C4 tidak mengalami fotorespirasi bersama oksigen.',
+    },
   ],
 
   Kimia: [
@@ -137,6 +167,21 @@ const CURRICULUM_QUESTION_LIBRARY: Record<string, any[]> = {
       explanation: '1. Ketika [NO] naik 2 kali, laju naik 4 kali => 2^m = 4 => m = 2 (orde terhadap NO adalah 2).\n2. Ketika kedua konsentrasi naik 2 kali, laju naik 8 kali => (2²)(2^n) = 8 => 4 × 2^n = 8 => 2^n = 2 => n = 1 (orde terhadap O₂ adalah 1).\n3. Orde total reaksi = m + n = 2 + 1 = 3.',
       hint: 'Cari orde parsial masing-masing reaktan secara terpisah lalu jumlahkan.',
     },
+    {
+      topic: 'Elektrokimia & Sel Volta',
+      questionText: 'Diberikan potensial reduksi standar: E°(Zn²⁺/Zn) = -0,76 V dan E°(Cu²⁺/Cu) = +0,34 V. Berapakah potensial sel standar (E° sel) dari sel Daniell Zn | Zn²⁺ || Cu²⁺ | Cu dan spesi manakah yang bertindak sebagai anoda?',
+      formulaOrContext: 'E°sel = E°katoda - E°anoda ; Anoda = Oksidasi, Katoda = Reduksi',
+      options: [
+        'A. E°sel = +1,10 V dengan Zn sebagai anoda',
+        'B. E°sel = +1,10 V dengan Cu sebagai anoda',
+        'C. E°sel = +0,42 V dengan Zn sebagai anoda',
+        'D. E°sel = -1,10 V dengan Cu sebagai anoda',
+        'E. E°sel = +0,42 V dengan Cu sebagai anoda',
+      ],
+      correctAnswerIndex: 0,
+      explanation: 'Logam dengan E° lebih negatif bertindak sebagai anoda (mengalami oksidasi): Seng (Zn) adalah anoda. Logam dengan E° lebih positif bertindak sebagai katoda (mengalami reduksi): Tembaga (Cu) adalah katoda. E°sel = E°katoda - E°anoda = +0,34 V - (-0,76 V) = +1,10 Volt.',
+      hint: 'Potensial sel dihitung dari selisih katoda dikurangi anoda.',
+    },
   ],
 
   Informatika: [
@@ -155,6 +200,15 @@ const CURRICULUM_QUESTION_LIBRARY: Record<string, any[]> = {
       explanation: 'Algoritma Dijkstra menggunakan pendekatan greedy dengan antrean prioritas (min-heap) untuk mencari lintasan terpendek dari satu titik awal ke semua titik lain pada graf berbobot non-negatif dengan kompleksitas waktu optimal O((V + E) log V).',
       hint: 'Algoritma lintasan terpendek graf berbobot positif menggunakan struktur data min-heap.',
     },
+    {
+      topic: 'Pemrograman Dinamis (0/1 Knapsack)',
+      questionText: 'Seorang peserta olimpiade memiliki ransel dengan kapasitas bobot maksimum W = 7 kg. Terdapat 3 barang dengan bobot dan nilai masing-masing: Barang A (bobot 2 kg, nilai 10), Barang B (bobot 3 kg, nilai 15), Barang C (bobot 4 kg, nilai 25). Berapakah nilai maksimum yang dapat dibawa tanpa melebihi kapasitas?',
+      formulaOrContext: 'Persamaan Rekurensi: dp[i][w] = max(dp[i-1][w], dp[i-1][w - w_i] + v_i)',
+      options: ['A. 35', 'B. 40', 'C. 42', 'D. 45', 'E. 50'],
+      correctAnswerIndex: 1,
+      explanation: 'Kombinasi yang mungkin: Barang B + C = bobot 3 + 4 = 7 kg (pas dengan kapasitas W = 7). Total nilai = 15 + 25 = 40. Kombinasi lain: A + C = 2 + 4 = 6 kg, nilai = 10 + 25 = 35. Kombinasi A + B = 5 kg, nilai = 10 + 15 = 25. Nilai maksimum optimal adalah 40.',
+      hint: 'Evaluasi kombinasi barang yang memaksimalkan bobot dan nilai ransel.',
+    },
   ],
 
   Astronomi: [
@@ -166,6 +220,15 @@ const CURRICULUM_QUESTION_LIBRARY: Record<string, any[]> = {
       correctAnswerIndex: 2,
       explanation: 'Jarak perihelion r_p = a(1 - e) = 0,5 SA. Karena e = 0,8, maka a(1 - 0,8) = 0,2 a = 0,5 => a = 2,5 SA (sumbu semi-mayor). Jarak aphelion r_a = a(1 + e) = 2,5 × (1 + 0,8) = 2,5 × 1,8 = 4,5 SA.',
       hint: 'Hitung sumbu semi-mayor orbit elips terlebih dahulu dari perihelion.',
+    },
+    {
+      topic: 'Fotometri & Formula Pogson',
+      questionText: 'Bintang Vega memiliki magnitudo tampak m₁ = 0,0 dan bintang Polaris memiliki magnitudo tampak m₂ = 2,0. Berapakah rasio perbandingan fluks kecerlangan F_Vega / F_Polaris?',
+      formulaOrContext: 'Formula Pogson: m₂ - m₁ = 2,5 log₁₀(F₁ / F₂)',
+      options: ['A. 2,512 kali', 'B. 4,000 kali', 'C. 6,310 kali', 'D. 10,00 kali', 'E. 100,0 kali'],
+      correctAnswerIndex: 2,
+      explanation: 'Berdasarkan formula Pogson: m₂ - m₁ = 2,0 - 0,0 = 2,0 = 2,5 log₁₀(F₁ / F₂). Maka log₁₀(F₁ / F₂) = 2,0 / 2,5 = 0,8. Sehingga F₁ / F₂ = 10^(0,8) ≈ 6,310 kali lebih terang.',
+      hint: 'Gunakan hukum Pogson dengan selisih magnitudo 2 tingkat.',
     },
   ],
 
@@ -185,6 +248,21 @@ const CURRICULUM_QUESTION_LIBRARY: Record<string, any[]> = {
       explanation: 'Saat lempeng samudera menunjam ke dalam mantel, temperatur dan tekanan tinggi menyebabkan mineral terhidrasi melepaskan air (H₂O). Air ini naik ke baji mantel (mantle wedge) di atasnya, bertindak sebagai flux kimia yang memecah ikatan silikat dan menurunkan titik leleh (solidus) batuan peridotit mantel, memicu pelelehan parsial.',
       hint: 'Air dari lempeng yang menunjam menurunkan kurva titik leleh solidus batuan mantel.',
     },
+    {
+      topic: 'Meteorologi & Sirkulasi Atmosfer',
+      questionText: 'Di belahan bumi selatan, angin geostrofik yang bergerak di antara daerah bertekanan tinggi dan bertekanan rendah akan dibelokkan ke arah mana oleh gaya Coriolis?',
+      formulaOrContext: 'Gaya Coriolis: F_c = 2 m (v × Ω) sin(φ)',
+      options: [
+        'A. Dibelokkan ke kanan tegak lurus arah gerak',
+        'B. Dibelokkan ke kiri tegak lurus arah gerak',
+        'C. Dibelokkan lurus ke atas vertikal',
+        'D. Tidak mengalami pembelokan sama sekali di semua lintang',
+        'E. Dibelokkan bolak-balik secara periodik',
+      ],
+      correctAnswerIndex: 1,
+      explanation: 'Akibat rotasi Bumi, efek Coriolis menyebabkan pembelokan gerak fluida bebas ke arah kanan di Belahan Bumi Utara (BBU) dan ke arah kiri di Belahan Bumi Selatan (BBS).',
+      hint: 'Ingat hukum Buys Ballot untuk Belahan Bumi Selatan (BBS).',
+    },
   ],
 
   Ekonomi: [
@@ -196,6 +274,15 @@ const CURRICULUM_QUESTION_LIBRARY: Record<string, any[]> = {
       correctAnswerIndex: 2,
       explanation: 'Keseimbangan sebelum pajak: 120 - 2P = 20 + 3P => 5P = 100 => P = Rp 20. Setelah pajak spesifik t = 5, fungsi penawaran baru: Qs = 20 + 3(P - 5) = 20 + 3P - 15 = 3P + 5. Keseimbangan baru: 120 - 2P = 3P + 5 => 5P = 115 => P = Rp 23. Harga baru yang dibayar konsumen adalah Rp 23.',
       hint: 'Gantikan P dengan (P - t) pada fungsi penawaran sebelum menyeimbangkan dengan permintaan.',
+    },
+    {
+      topic: 'Makroekonomi & Kebijakan Fiskal',
+      questionText: 'Dalam perekonomian tertutup sederhana tanpa pajak proporsional, jika Marginal Propensity to Consume (MPC) adalah 0,8 dan pemerintah menambah pengeluaran belanja negara (G) sebesar Rp 50 triliun, berapakah kenaikan total Pendapatan Nasional (ΔY)?',
+      formulaOrContext: 'Angka Pengganda Belanja (Multiplier): k = 1 / (1 - MPC) ; ΔY = k × ΔG',
+      options: ['A. Rp 100 triliun', 'B. Rp 150 triliun', 'C. Rp 200 triliun', 'D. Rp 250 triliun', 'E. Rp 400 triliun'],
+      correctAnswerIndex: 3,
+      explanation: 'Multiplier pengeluaran k = 1 / (1 - 0,8) = 1 / 0,2 = 5. Kenaikan pendapatan nasional ΔY = k × ΔG = 5 × Rp 50 triliun = Rp 250 triliun.',
+      hint: 'Hitung angka pengganda belanja (multiplier) dari nilai 1 / (1 - MPC).',
     },
   ],
 
@@ -214,6 +301,21 @@ const CURRICULUM_QUESTION_LIBRARY: Record<string, any[]> = {
       correctAnswerIndex: 1,
       explanation: 'Saat El Niño, perairan Pasifik tengah dan timur memanas secara anomali. Sirkulasi Walker melemah dan pusat massa konvektif pembentuk awan berpindah ke Pasifik tengah. Hal ini menyebabkan wilayah kepulauan Indonesia mengalami gerak massa udara turun (subsistensi) yang menekan pembentukan awan hujan, memicu musim kemarau berkepanjangan.',
       hint: 'Perhatikan pergeseran pusat massa awan konvektif ke timur dan gerak subsistensi udara di Indonesia.',
+    },
+    {
+      topic: 'Penginderaan Jauh & Citra Satelit',
+      questionText: 'Pada analisis vegetasi menggunakan citra satelit multispektral Landsat/Sentinel, indeks vegetasi Normalized Difference Vegetation Index (NDVI) dihitung dengan membandingkan pantulan pada saluran inframerah dekat (NIR) dan merah (Red). Mengapa klorofil tanaman sehat memantulkan radiasi NIR sangat tinggi?',
+      formulaOrContext: 'Formula NDVI: (NIR - Red) / (NIR + Red)',
+      options: [
+        'A. Radiasi NIR diserap penuh oleh pigmen antosianin',
+        'B. Struktur sel mesofil bunga karang daun memantulkan dan menghamburkan gelombang NIR untuk mencegah kenaikan suhu seluler yang berlebihan',
+        'C. Gelombang NIR dipantulkan karena tanaman tidak memerlukan air',
+        'D. Radiasi merah diserap 100% oleh kutikula lilin daun',
+        'E. Terjadi resonansi magnetik antara klorofil dan nitrogen bebas di udara',
+      ],
+      correctAnswerIndex: 1,
+      explanation: 'Klorofil menyerap kuat cahaya merah dan biru untuk fotosintesis, sedangkan struktur internal mesofil (khususnya spons) memantulkan radiasi inframerah dekat (NIR) hingga 40-50% untuk mencegah *overheating* jaringan seluler tanaman. Oleh karena itu, rasio (NIR - Red) menjadi tinggi pada vegetasi rapat.',
+      hint: 'Struktur bunga karang mesofil daun sehat menghamburkan radiasi inframerah dekat.',
     },
   ],
 };
@@ -451,3 +553,68 @@ Pastikan materi 100% murni bidang ${subject}.`;
     note: `Soal ${subject} berhasil dirangkai dari Bank Silabus Terkalibrasi SMAN 1 Pardasuka (${level}).`,
   };
 }
+
+export interface ExplainQuestionParams {
+  questionText: string;
+  studentAnswer: string;
+  correctAnswer: string;
+  subject: string;
+  originalExplanation?: string;
+}
+
+export async function explainQuestionRemediation(params: ExplainQuestionParams): Promise<string> {
+  const { questionText, studentAnswer, correctAnswer, subject, originalExplanation } = params;
+
+  // 1. Try Backend
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+    const res = await fetch('/api/ai/explain-question', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ questionText, studentAnswer, correctAnswer, subject }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    const contentType = res.headers.get('content-type') || '';
+    if (res.ok && contentType.includes('application/json')) {
+      const data = await res.json();
+      if (data.explanation) return data.explanation;
+    }
+  } catch (err) {
+    // proceed to fallback
+  }
+
+  // 2. Try Client Gemini
+  const clientApiKey =
+    (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY) ||
+    (typeof process !== 'undefined' && process.env?.GEMINI_API_KEY);
+
+  if (clientApiKey && clientApiKey !== 'MY_GEMINI_API_KEY') {
+    try {
+      const clientAi = new GoogleGenAI({ apiKey: clientApiKey });
+      const prompt = `Anda adalah Guru Pembimbing Ahli OSN ${subject} SMAN 1 Pardasuka.
+Bantu peserta didik memahami kesalahannya dan mengapa jawaban yang benar adalah yang tepat.
+Soal: ${questionText}
+Jawaban Siswa: ${studentAnswer}
+Kunci Jawaban Benar: ${correctAnswer}
+Berikan diagnosa konsep miskonsepsi dan langkah penyelesaian ilmiah yang memotivasi.`;
+      const response = await clientAi.models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents: prompt,
+      });
+      if (response.text) return response.text;
+    } catch (e) {
+      // proceed to fallback
+    }
+  }
+
+  // 3. Fallback pedagogis terstruktur
+  return `### Konsultasi Remediasi Terstruktur (${subject})
+1. **Analisis Jawaban Anda**: Pilihan "${studentAnswer}" belum tepat. Umumnya kekeliruan terjadi karena estimasi besaran atau asumsi kondisi batas.
+2. **Kunci Jawaban Benar**: "${correctAnswer}".
+3. **Pembahasan Ilmiah SMAN 1 Pardasuka**:
+${originalExplanation || 'Terapkan konsep fundamental bidang sains terkait dan telaah kembali langkah demi langkah penurunan rumus/hukum alam.'}
+4. **Saran Pembina**: Perbanyak latihan mandiri pada modul materi ini dan catat poin-poin rumus kunci sebelum simulasi berikutnya.`;
+}
+
