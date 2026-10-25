@@ -169,44 +169,24 @@ app.post('/api/ai/generate-questions', async (req, res) => {
       topic = 'Aljabar dan Teori Bilangan',
       customPrompt = '',
       questionType = 'pilihan_ganda', // 'pilihan_ganda' | 'esai' | 'bergambar'
-      reasoningLevel = 'sedang', // 'standar' | 'sedang' | 'tinggi'
-      purpose = 'terjadwal', // 'bimbingan' | 'cbt' | 'terjadwal' | 'modul_osn'
-      avoidDuplicateSeed = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
     } = req.body;
 
-    const purposeTitle =
-      purpose === 'bimbingan'
-        ? 'Soal Khusus Kelas Bimbingan & Pembahasan Intensif OSN'
-        : purpose === 'cbt'
-        ? 'Soal Ujian Berstandar CBT OSN (Pengecoh Homogen & Presisi Tinggi)'
-        : purpose === 'modul_osn'
-        ? 'Soal Latihan Mandiri & Pengayaan Modul Pembelajaran OSN'
-        : 'Bank Soal Terjadwal Terkalibrasi SMAN 1 Pardasuka';
-
     const systemPrompt = `Anda adalah Tim Ahli Penyusun Soal Olimpiade Sains Nasional (OSN) dari Kemendikbudristek / Puspresnas dan Pembina Olimpiade SMAN 1 PARDASUKA.
-Tujuan Penyusunan: ${purposeTitle}.
-Mode Penalaran: ${reasoningLevel.toUpperCase()} (Terapkan Chain-of-Thought / penalaran ilmiah bertahap sebelum merumuskan jawaban).
-
-ATURAN ANTI-DUPLIKASI & DIFERENSIASI SOAL (SANGAT KRUSIAL):
-- Setiap butir soal HARUS benar-benar BARU dan BERBEDA.
-- JANGAN PERNAH membuat soal atau jawaban yang identik / mirip dengan soal-soal sebelumnya!
-- Gunakan variasi variabel, angka acak, konteks eksperimental baru, dan studi kasus berbeda.
-- Posisi opsi kunci jawaban (A, B, C, D, E) HARUS didistribusikan secara acak (tidak selalu pada opsi yang sama).
-- ID Sesi Random: ${avoidDuplicateSeed}
+Tugas Anda adalah menyusun soal olimpiade sains yang berkualitas tinggi, orisinal, menantang (HOTS), sesuai dengan Taksonomi Bloom dan Taksonomi SOLO.
 
 DISIPLIN BIDANG MATA PELAJARAN (SANGAT KRUSIAL & MUTLAK):
 - Bidang Mata Pelajaran: ${subject}
 - Soal, teks pertanyaan, konteks ilmiah, rumus/reaksi, opsi pilihan jawaban, kunci jawaban, dan TERUTAMA PEMBAHASAN HARUS 100% SESUAI DENGAN BIDANG ILMU ${subject}.
 - DILARANG KERAS mencampuradukkan materi dari bidang studi lain!
-  * Jika Bidang adalah KIMIA: Soal, reaksi kimia, stoikiometri, kinetika, dan PEMBAHASAN HARUS MURNI ILMU KIMIA.
-  * Jika Bidang adalah BIOLOGI: Soal dan pembahasan HARUS MURNI ILMU BIOLOGI.
-  * Jika Bidang adalah FISIKA: Soal dan pembahasan HARUS MURNI ILMU FISIKA.
-  * Jika Bidang adalah MATEMATIKA: Soal dan pembahasan HARUS MURNI MATEMATIKA.
-  * Jika Bidang adalah ASTRONOMI: Soal dan pembahasan HARUS MURNI ASTRONOMI & ASTROFISIKA.
-  * Jika Bidang adalah KEBUMIAN: Soal dan pembahasan HARUS MURNI KEBUMIAN.
-  * Jika Bidang adalah INFORMATIKA: Soal dan pembahasan HARUS MURNI INFORMATIKA.
-  * Jika Bidang adalah EKONOMI: Soal dan pembahasan HARUS MURNI EKONOMI.
-  * Jika Bidang adalah GEOGRAFI: Soal dan pembahasan HARUS MURNI GEOGRAFI.
+  * Jika Bidang adalah KIMIA: Soal, reaksi kimia, stoikiometri, kinetika, dan PEMBAHASAN HARUS MURNI ILMU KIMIA (dilarang menyajikan soal matematika umum atau fisika murni; wajib pembahasan kimia analitik/organik/fisik).
+  * Jika Bidang adalah BIOLOGI: Soal dan pembahasan HARUS MURNI ILMU BIOLOGI (biologi sel, genetika, fisiologi, ekologi, anatomi).
+  * Jika Bidang adalah FISIKA: Soal dan pembahasan HARUS MURNI ILMU FISIKA (mekanika, termodinamika, elektromagnetisme, gelombang optik).
+  * Jika Bidang adalah MATEMATIKA: Soal dan pembahasan HARUS MURNI MATEMATIKA (aljabar, geometri, teori bilangan, kombinatorika).
+  * Jika Bidang adalah ASTRONOMI: Soal dan pembahasan HARUS MURNI ASTRONOMI & ASTROFISIKA (Hukum Kepler, radiasi bintang, magnitudo, koordinat bola langit).
+  * Jika Bidang adalah KEBUMIAN: Soal dan pembahasan HARUS MURNI KEBUMIAN (geologi struktur, mineralogi, meteorologi, oseanografi, dinamika lempeng).
+  * Jika Bidang adalah INFORMATIKA: Soal dan pembahasan HARUS MURNI INFORMATIKA (algoritma, pemrograman dinamis, teori graf, struktur data, logika komputasi).
+  * Jika Bidang adalah EKONOMI: Soal dan pembahasan HARUS MURNI EKONOMI (mikroekonomi, elastisitas, makroekonomi, kebijakan fiskal/moneter, akuntansi).
+  * Jika Bidang adalah GEOGRAFI: Soal dan pembahasan HARUS MURNI GEOGRAFI (klimatologi, geomorfologi, penginderaan jauh/SIG, demografi, oseanografi).
 
 Spesifikasi Permintaan:
 - Bidang: ${subject}
@@ -215,8 +195,6 @@ Spesifikasi Permintaan:
 - Taksonomi SOLO Target: ${soloTaxonomy}
 - Topik / Materi Khusus: ${topic}
 - Jumlah Soal: ${count} butir
-- Mode Penalaran: ${reasoningLevel}
-- Tujuan Soal: ${purpose}
 - Tipe Format Soal: ${questionType} (pilihan_ganda = PG 5 opsi A-E; esai = soal uraian analisis mendalam dengan rubrik dan kunci esai; bergambar = soal yang dilengkapi diagram visual/skema ilmiah SVG)
 ${customPrompt ? `- Catatan Khusus Pengajar: ${customPrompt}` : ''}
 
@@ -230,15 +208,9 @@ Panduan Format Output:
     if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'MY_GEMINI_API_KEY') {
       const response = await ai.models.generateContent({
         model: 'gemini-3.8-flash',
-        contents: `Gunakan penalaran ilmiah ${reasoningLevel} untuk tujuan ${purposeTitle}:
-Buatkan ${count} butir soal ${subject} bertipe ${questionType} tingkat ${level} dengan topik "${topic}", Taksonomi Bloom "${bloomTaxonomy}", dan Taksonomi SOLO "${soloTaxonomy}".
-PASTIKAN SEMUA SOAL BERBEDA KASUS, ANGKA, DAN JAWABANNYA. JANGAN MENGULANG SOAL YANG SAMA!`,
+        contents: `Buatkan ${count} butir soal ${subject} bertipe ${questionType} tingkat ${level} dengan topik "${topic}", Taksonomi Bloom "${bloomTaxonomy}", dan Taksonomi SOLO "${soloTaxonomy}". Pastikan 100% soal dan pembahasan ilmiah adalah murni materi ${subject}.`,
         config: {
           systemInstruction: systemPrompt,
-          temperature: 0.95,
-          thinkingConfig: {
-            thinkingBudget: reasoningLevel === 'tinggi' ? 4096 : reasoningLevel === 'sedang' ? 2048 : 0,
-          },
           responseMimeType: 'application/json',
           responseSchema: {
             type: Type.ARRAY,
@@ -274,12 +246,7 @@ PASTIKAN SEMUA SOAL BERBEDA KASUS, ANGKA, DAN JAWABANNYA. JANGAN MENGULANG SOAL 
 
       const responseText = response.text || '[]';
       const parsed = JSON.parse(responseText);
-      return res.json({
-        success: true,
-        questions: parsed,
-        source: `gemini-3.8-flash (${purpose})`,
-        note: `Berhasil disusun via Engine Gemini 3.8 Flash (Tipe: ${purposeTitle}).`,
-      });
+      return res.json({ success: true, questions: parsed, source: 'gemini-3.8-flash' });
     }
 
     // Fallback high-fidelity curriculum engine if API key is not yet set

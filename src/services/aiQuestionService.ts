@@ -6,9 +6,6 @@ import {
   SoloTaxonomy,
   Question,
 } from '../types';
-import { saveMultipleQuestionsToFirestore } from './firebase';
-
-export type QuestionTargetPurpose = 'bimbingan' | 'cbt' | 'terjadwal' | 'modul_osn';
 
 export interface GenerateQuestionsParams {
   subject: OsnSubject;
@@ -18,11 +15,8 @@ export interface GenerateQuestionsParams {
   count: number;
   topic: string;
   questionType: 'pilihan_ganda' | 'esai' | 'bergambar';
-  reasoningLevel?: 'standar' | 'sedang' | 'tinggi';
-  purpose?: QuestionTargetPurpose;
   customPrompt?: string;
   authorName?: string;
-  avoidDuplicateSeed?: string;
 }
 
 export interface GenerateQuestionsResponse {
@@ -326,27 +320,6 @@ const CURRICULUM_QUESTION_LIBRARY: Record<string, any[]> = {
   ],
 };
 
-function shuffleAndLabelOptions(options: string[], correctIdx: number): { options: string[]; correctIndex: number } {
-  if (!options || options.length === 0) return { options: [], correctIndex: 0 };
-  const cleaned = options.map((o) => o.replace(/^[A-E]\.\s*/, '').trim());
-  const correctText = cleaned[correctIdx] || cleaned[0];
-
-  const perm = [...cleaned];
-  for (let i = perm.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [perm[i], perm[j]] = [perm[j], perm[i]];
-  }
-
-  const newCorrectIdx = perm.indexOf(correctText);
-  const letters = ['A', 'B', 'C', 'D', 'E'];
-  const labeled = perm.map((t, i) => `${letters[i]}. ${t}`);
-
-  return {
-    options: labeled,
-    correctIndex: newCorrectIdx >= 0 ? newCorrectIdx : 0,
-  };
-}
-
 function generateCurriculumFallbackQuestions(
   subject: OsnSubject,
   level: CompetitionLevel,
@@ -355,72 +328,16 @@ function generateCurriculumFallbackQuestions(
   count: number,
   topic: string,
   questionType: 'pilihan_ganda' | 'esai' | 'bergambar',
-  purpose: QuestionTargetPurpose = 'terjadwal',
   customPrompt?: string,
   authorName?: string
 ): Question[] {
   const library = CURRICULUM_QUESTION_LIBRARY[subject] || CURRICULUM_QUESTION_LIBRARY['Matematika'];
   const questions: Question[] = [];
 
-  const purposeTag =
-    purpose === 'bimbingan'
-      ? 'Bimbingan OSN'
-      : purpose === 'cbt'
-      ? 'Ujian CBT'
-      : purpose === 'modul_osn'
-      ? 'Latihan Modul'
-      : 'Bank Soal Terjadwal';
-
   for (let i = 0; i < count; i++) {
     const base = library[i % library.length];
-    const salt = (i + 1) * 3 + Math.floor(Math.random() * 9);
-    const qId = `${purpose.toUpperCase()}-${subject.toUpperCase().substring(0, 3)}-${Date.now()}-${i + 1}`;
+    const qId = `GEN-OSN-${Date.now()}-${i + 1}`;
     const questionTopic = topic.trim() || base.topic || `${subject} OSN`;
-
-    // Dynamic numeric and contextual variations
-    let questionText = base.questionText;
-    let formulaContext = base.formulaOrContext;
-    let explanationText = base.explanation;
-    let rawOptions = [...(base.options || [])];
-    let correctIdx = base.correctAnswerIndex ?? 0;
-
-    // Procedurally perturb parameters based on index and randomness
-    if (base.questionText.includes('2026')) {
-      const year = 2026 + (salt % 4);
-      const valOffset = 20 + salt * 4;
-      questionText = questionText.replace(/2026/g, `${year}`).replace(/2050/g, `${year + valOffset}`);
-      explanationText = explanationText.replace(/2026/g, `${year}`);
-    } else if (base.questionText.includes('0,8') || base.questionText.includes('0.8')) {
-      const ecc = (0.6 + (salt % 3) * 0.1).toFixed(1);
-      questionText = questionText.replace(/0,8/g, ecc).replace(/0\.8/g, ecc);
-    } else if (base.questionText.includes('2400 Joule')) {
-      const joule = 2400 + salt * 100;
-      questionText = questionText.replace(/2400 Joule/g, `${joule} Joule`);
-    } else if (base.questionText.includes('1000 pasangan')) {
-      const bp = 1000 + salt * 50;
-      questionText = questionText.replace(/1000 pasangan/g, `${bp} pasangan`);
-    }
-
-    // Contextualize stem according to Purpose
-    if (purpose === 'bimbingan') {
-      questionText = `[${purposeTag}: Analisis Kasus] Dalam sesi bimbingan olimpiade sains bidang ${subject}, telaah fenomena berikut:\n${questionText}\n(Diskusikan langkah pembuktian dan kemungkinan jebakan konsep!)`;
-    } else if (purpose === 'cbt') {
-      questionText = `[${purposeTag}] ${questionText}`;
-    } else if (purpose === 'modul_osn') {
-      questionText = `[${purposeTag} - ${questionTopic}] Uji Pemahaman Mandiri: ${questionText}`;
-    } else {
-      questionText = `[${questionTopic}] ${questionText}`;
-    }
-
-    // Dynamic Option Shuffling with correct answer tracking
-    let finalOptions: string[] = [];
-    let finalCorrectAnswerIndex = 0;
-
-    if (questionType !== 'esai') {
-      const shuffled = shuffleAndLabelOptions(rawOptions, correctIdx);
-      finalOptions = shuffled.options;
-      finalCorrectAnswerIndex = shuffled.correctIndex;
-    }
 
     const qItem: Question = {
       id: qId,
@@ -430,35 +347,34 @@ function generateCurriculumFallbackQuestions(
       difficulty: bloomTaxonomy.includes('C5') || bloomTaxonomy.includes('C6') ? 'HOTS / Sulit' : 'Sedang',
       bloomLevel: bloomTaxonomy,
       soloLevel: soloTaxonomy,
-      questionText,
+      questionText: `[${questionTopic}] ${base.questionText}`,
       questionType,
-      formulaOrContext: formulaContext,
-      options: finalOptions,
-      correctAnswerIndex: finalCorrectAnswerIndex,
-      explanation: `${explanationText}\n(Analisis terkalibrasi silabus ${level} - SMAN 1 Pardasuka).`,
+      formulaOrContext: base.formulaOrContext,
+      options: questionType !== 'esai' ? base.options : [],
+      correctAnswerIndex: questionType !== 'esai' ? base.correctAnswerIndex : 0,
+      explanation: base.explanation,
       hint: base.hint,
-      author: authorName || `Tim Pengembang OSN (${purposeTag})`,
+      author: authorName || 'Tim Kurikulum Olimpiade SMAN 1 Pardasuka',
       createdAt: new Date().toISOString().split('T')[0],
     };
 
     if (questionType === 'bergambar') {
-      const hue = (i * 45 + 260) % 360;
       qItem.diagramSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" class="w-full h-auto max-h-48 rounded bg-[#100720]">
         <rect width="320" height="180" fill="#13092b" rx="8"/>
         <line x1="40" y1="150" x2="280" y2="150" stroke="#7e22ce" stroke-width="2"/>
         <line x1="40" y1="20" x2="40" y2="150" stroke="#7e22ce" stroke-width="2"/>
-        <path d="M 40,${130 - (salt % 20)} Q ${100 + salt * 2},${120 - salt} 150,${90 - (salt % 15)} T ${200 + salt},${50 - (salt % 10)} Q 250,40 280,30" fill="none" stroke="hsl(${hue}, 85%, 65%)" stroke-width="3"/>
-        <circle cx="${140 + (salt % 30)}" cy="${70 + (salt % 20)}" r="5" fill="#f59e0b" stroke="#fff" stroke-width="2"/>
-        <text x="${155 + (salt % 30)}" y="${73 + (salt % 20)}" fill="#f59e0b" font-size="10" font-weight="bold">Titik Titik Kritis [Kasus ${i + 1}]</text>
-        <text x="160" y="170" fill="#c084fc" font-size="9" text-anchor="middle">Diagram Skema Ilmiah ${subject} (${purposeTag})</text>
+        <path d="M 40,135 Q 120,130 150,110 T 170,40 Q 220,35 280,30" fill="none" stroke="#ec4899" stroke-width="3"/>
+        <circle cx="160" cy="75" r="5" fill="#f59e0b" stroke="#fff" stroke-width="2"/>
+        <text x="175" y="78" fill="#f59e0b" font-size="10" font-weight="bold">Titik Analisis Kritis</text>
+        <text x="160" y="170" fill="#c084fc" font-size="9" text-anchor="middle">Diagram Skema Ilmiah ${subject} - SMAN 1 Pardasuka</text>
       </svg>`;
-      qItem.imageCaption = `Diagram Ilustrasi Ilmiah Terstandar ${subject} [Variasi ${i + 1}]: ${questionTopic}`;
+      qItem.imageCaption = `Diagram Ilustrasi Ilmiah Terstandar Bidang ${subject}: ${questionTopic}`;
     } else if (questionType === 'esai') {
       qItem.options = [];
       qItem.correctAnswerIndex = -1;
-      qItem.sampleEssayAnswer = `Langkah Penyelesaian & Pembuktian Ilmiah Bidang ${subject} (${purposeTag}):
-1. Identifikasi kondisi awal sistem dan hukum sains yang mendasari: ${formulaContext || 'Prinsip Dasar'}.
-2. Penurunan matematis / penjabaran mekanisme reaksi bertahap: ${explanationText}
+      qItem.sampleEssayAnswer = `Langkah Penyelesaian & Pembuktian Ilmiah Bidang ${subject}:
+1. Identifikasi kondisi awal sistem dan hukum sains yang mendasari: ${base.formulaOrContext || 'Prinsip Dasar'}.
+2. Penurunan matematis / penjabaran mekanisme reaksi bertahap: ${base.explanation}
 3. Interpretasi hasil akhir dan verifikasi batas domain fisis.`;
       qItem.rubricOrKeyPoints = [
         `Penguasaan konsep dan terminologi ilmiah bidang ${subject} (Bobot: 30%)`,
@@ -494,10 +410,6 @@ export async function generateOsnQuestions(
     authorName,
   } = params;
 
-  const purpose: QuestionTargetPurpose = params.purpose || 'terjadwal';
-  const reasoningMode = params.reasoningLevel || 'sedang';
-  const randomSeed = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-
   // 1. Try calling the backend endpoint first (works in dev / express environment)
   try {
     const controller = new AbortController();
@@ -514,9 +426,6 @@ export async function generateOsnQuestions(
         count,
         topic,
         questionType,
-        reasoningLevel: reasoningMode,
-        purpose,
-        avoidDuplicateSeed: randomSeed,
         customPrompt,
       }),
       signal: controller.signal,
@@ -529,16 +438,11 @@ export async function generateOsnQuestions(
     if (response.ok && contentType.includes('application/json')) {
       const data = await response.json();
       if (data.success && Array.isArray(data.questions) && data.questions.length > 0) {
-        // Asynchronously synchronize questions to Firebase Firestore
-        saveMultipleQuestionsToFirestore(data.questions).catch((e) =>
-          console.warn('Firestore question sync notice (fallback to static for GitHub/Vercel):', e)
-        );
-
         return {
           success: true,
           questions: data.questions,
-          source: data.source || `gemini-3.8-flash (${purpose})`,
-          note: data.note || `Soal ${subject} dirangkai via Engine Gemini 3.8 Flash (Tipe: ${purpose}).`,
+          source: data.source || 'gemini-3.8-flash',
+          note: data.note,
         };
       }
     }
@@ -554,33 +458,15 @@ export async function generateOsnQuestions(
   if (clientApiKey && clientApiKey !== 'MY_GEMINI_API_KEY') {
     try {
       const clientAi = new GoogleGenAI({ apiKey: clientApiKey });
-      const purposeInstruction =
-        purpose === 'bimbingan'
-          ? 'Fokuskan soal untuk Kelas Bimbingan Tatap Muka: telaah studi kasus analitis, jebakan miskonsepsi peserta didik, dan pembuktian bertahap.'
-          : purpose === 'cbt'
-          ? 'Fokuskan soal untuk Ujian CBT OSN: pengecoh homogen presisi tinggi, kunci jawaban tunggal terverifikasi, dan tingkat kesulitan setara OSN resmi.'
-          : purpose === 'modul_osn'
-          ? 'Fokuskan soal untuk Latihan Mandiri Modul OSN: berbasis penguasaan materi modul, analogi sains konkret, dan petunjuk pengerjaan (hint) praktis.'
-          : 'Fokuskan soal untuk Bank Soal Terjadwal: variasi spektrum kognitif Bloom C1–C6 dan SOLO secara berimbang.';
-
       const systemPrompt = `Anda adalah Tim Ahli Penyusun Soal Olimpiade Sains Nasional (OSN) SMAN 1 PARDASUKA.
-Tujuan Penyusunan: ${purpose.toUpperCase()} - ${purposeInstruction}
-Engine: Gemini 3.8 Flash dengan Mode Penalaran Sedang (Moderate Thinking / Chain-of-Thought).
-ATURAN ANTI-DUPLIKASI: Setiap butir soal HARUS benar-benar baru, dengan skenario berbeda, angka acak, dan variasi opsi jawaban. JANGAN mengulang soal atau jawaban yang identik!
-Distribusi opsi kunci jawaban (A, B, C, D, E) harus seimbang dan acak.
-ID Sesi Unik: ${randomSeed}
 Susun soal OSN bidang ${subject} tingkat ${level} dengan topik "${topic}", Taksonomi Bloom "${bloomTaxonomy}", Taksonomi SOLO "${soloTaxonomy}".
 Pastikan materi 100% murni bidang ${subject}.`;
 
       const response = await clientAi.models.generateContent({
         model: 'gemini-3.8-flash',
-        contents: `Gunakan penalaran sedang (medium reasoning) untuk ${purpose}: Buatkan ${count} butir soal ${subject} bertipe ${questionType} dengan topik "${topic}". Lakukan pembuktian analitis dan penalaran langkah demi langkah pada penjelasan ilmiah. PASTIKAN SEMUA SOAL BERBEDA KASUS DAN ANGKA!`,
+        contents: `Buatkan ${count} butir soal ${subject} bertipe ${questionType} dengan topik "${topic}".`,
         config: {
           systemInstruction: systemPrompt,
-          temperature: 0.95,
-          thinkingConfig: {
-            thinkingBudget: 2048,
-          },
           responseMimeType: 'application/json',
           responseSchema: {
             type: Type.ARRAY,
@@ -612,50 +498,34 @@ Pastikan materi 100% murni bidang ${subject}.`;
 
       const parsed = JSON.parse(response.text || '[]');
       if (Array.isArray(parsed) && parsed.length > 0) {
-        const mappedQuestions: Question[] = parsed.map((q: any, idx: number) => {
-          let options = q.options || (questionType !== 'esai' ? ['A', 'B', 'C', 'D', 'E'] : []);
-          let correctAnswerIndex = typeof q.correctAnswerIndex === 'number' ? q.correctAnswerIndex : 0;
-
-          if (questionType !== 'esai' && options.length > 0) {
-            const shuffled = shuffleAndLabelOptions(options, correctAnswerIndex);
-            options = shuffled.options;
-            correctAnswerIndex = shuffled.correctIndex;
-          }
-
-          return {
-            id: `${purpose.toUpperCase()}-AI-${Date.now()}-${idx + 1}`,
-            subject,
-            topic: topic || `${subject} OSN`,
-            level,
-            difficulty: bloomTaxonomy.includes('C5') || bloomTaxonomy.includes('C6') ? 'HOTS / Sulit' : 'Sedang',
-            bloomLevel: bloomTaxonomy,
-            soloLevel: soloTaxonomy,
-            questionText: q.questionText,
-            questionType: (q.questionType as any) || questionType,
-            formulaOrContext: q.formulaOrContext,
-            options,
-            correctAnswerIndex,
-            explanation: q.explanation || 'Pembahasan langkah demi langkah.',
-            hint: q.hint,
-            diagramSvg: q.diagramSvg,
-            imageCaption: q.imageCaption,
-            sampleEssayAnswer: q.sampleEssayAnswer,
-            rubricOrKeyPoints: q.rubricOrKeyPoints,
-            author: authorName || `AI Gemini (${purpose.toUpperCase()})`,
-            createdAt: new Date().toISOString().split('T')[0],
-          };
-        });
-
-        // Asynchronously synchronize questions to Firebase Firestore
-        saveMultipleQuestionsToFirestore(mappedQuestions).catch((e) =>
-          console.warn('Firestore question sync notice (fallback to static for GitHub/Vercel):', e)
-        );
+        const mappedQuestions: Question[] = parsed.map((q: any, idx: number) => ({
+          id: `GEN-AI-${Date.now()}-${idx + 1}`,
+          subject,
+          topic: topic || `${subject} OSN`,
+          level,
+          difficulty: bloomTaxonomy.includes('C5') || bloomTaxonomy.includes('C6') ? 'HOTS / Sulit' : 'Sedang',
+          bloomLevel: bloomTaxonomy,
+          soloLevel: soloTaxonomy,
+          questionText: q.questionText,
+          questionType: (q.questionType as any) || questionType,
+          formulaOrContext: q.formulaOrContext,
+          options: q.options || (questionType !== 'esai' ? ['A', 'B', 'C', 'D', 'E'] : []),
+          correctAnswerIndex: typeof q.correctAnswerIndex === 'number' ? q.correctAnswerIndex : 0,
+          explanation: q.explanation || 'Pembahasan langkah demi langkah.',
+          hint: q.hint,
+          diagramSvg: q.diagramSvg,
+          imageCaption: q.imageCaption,
+          sampleEssayAnswer: q.sampleEssayAnswer,
+          rubricOrKeyPoints: q.rubricOrKeyPoints,
+          author: authorName || 'AI Gemini (Pembina SMAN 1 Pardasuka)',
+          createdAt: new Date().toISOString().split('T')[0],
+        }));
 
         return {
           success: true,
           questions: mappedQuestions,
-          source: `gemini-3.8-flash (${purpose})`,
-          note: `Berhasil dirangkai menggunakan Engine AI Gemini 3.8 Flash (Tipe: ${purpose.toUpperCase()} - Penalaran Sedang).`,
+          source: 'gemini-3.8-flash',
+          note: `Berhasil dirangkai menggunakan Engine AI Gemini 3.8 Flash (Bidang ${subject}).`,
         };
       }
     } catch (clientGeminiError) {
@@ -672,21 +542,15 @@ Pastikan materi 100% murni bidang ${subject}.`;
     count,
     topic,
     questionType,
-    purpose,
     customPrompt,
     authorName
-  );
-
-  // Asynchronously synchronize fallback questions to Firebase Firestore
-  saveMultipleQuestionsToFirestore(fallbackQuestions).catch((e) =>
-    console.warn('Firestore question sync notice (fallback to static for GitHub/Vercel):', e)
   );
 
   return {
     success: true,
     questions: fallbackQuestions,
-    source: `kurikulum-internal-${purpose}`,
-    note: `Soal ${subject} berhasil dirangkai dari Bank Silabus Terkalibrasi SMAN 1 Pardasuka (Tipe: ${purpose.toUpperCase()}).`,
+    source: 'kurikulum-internal-sman1pardasuka',
+    note: `Soal ${subject} berhasil dirangkai dari Bank Silabus Terkalibrasi SMAN 1 Pardasuka (${level}).`,
   };
 }
 
