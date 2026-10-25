@@ -221,6 +221,51 @@ export async function fetchExamPacketsFromFirestore(): Promise<ExamPacket[]> {
 }
 
 /**
+ * Subscribe to realtime Exam Packets in Firestore
+ */
+export function subscribeExamPackets(
+  onUpdate: (exams: ExamPacket[]) => void
+): () => void {
+  const collPath = 'exams';
+  try {
+    const q = query(collection(db, collPath));
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const exams: ExamPacket[] = [];
+        snapshot.forEach((docSnap) => {
+          exams.push(docSnap.data() as ExamPacket);
+        });
+        if (exams.length > 0) {
+          onUpdate(exams);
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, collPath);
+      }
+    );
+    return unsubscribe;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, collPath);
+    return () => {};
+  }
+}
+
+/**
+ * Sync initial/default exams to Firestore without wiping existing questions
+ */
+export async function syncInitialExamsToFirestore(examsList: ExamPacket[]): Promise<void> {
+  for (const exam of examsList) {
+    try {
+      const docRef = doc(db, 'exams', exam.id);
+      await setDoc(docRef, exam, { merge: true });
+    } catch (error) {
+      console.warn(`Sync exam packet ${exam.id} notice:`, error);
+    }
+  }
+}
+
+/**
  * Save User Profile to Firestore
  */
 export async function saveUserToFirestore(user: UserProfile): Promise<void> {
