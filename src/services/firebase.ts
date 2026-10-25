@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { ExamResult, ExamPacket, UserProfile, BimbinganSchedule, LearningMedia } from '../types';
+import { ScholarArticle } from '../data/scholarRepositoryData';
 
 // Initialize Firebase App
 export const app = initializeApp(firebaseConfig);
@@ -378,6 +379,98 @@ export function subscribeLearningMedia(
         });
         if (mediaList.length > 0) {
           onUpdate(mediaList);
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, collPath);
+      }
+    );
+    return unsubscribe;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, collPath);
+    return () => {};
+  }
+}
+
+/**
+ * Save Google Scholar Research Article to Firestore
+ */
+export async function saveScholarArticleToFirestore(article: ScholarArticle): Promise<void> {
+  const docPath = `scholarRepository/${article.id}`;
+  try {
+    const docRef = doc(db, 'scholarRepository', article.id);
+    await setDoc(docRef, {
+      ...article,
+      syncedAt: new Date().toISOString(),
+    });
+    console.log(`Scholar Article ${article.id} saved to Firebase Firestore.`);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, docPath);
+  }
+}
+
+/**
+ * Fetch Google Scholar Research Articles from Firestore
+ */
+export async function fetchScholarArticlesFromFirestore(): Promise<ScholarArticle[]> {
+  const collPath = 'scholarRepository';
+  try {
+    const querySnapshot = await getDocs(collection(db, collPath));
+    const articles: ScholarArticle[] = [];
+    querySnapshot.forEach((d) => {
+      articles.push(d.data() as ScholarArticle);
+    });
+    return articles;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, collPath);
+    return [];
+  }
+}
+
+/**
+ * Synchronize all Google Scholar articles into Firebase Firestore
+ */
+export async function syncInitialScholarRepositoryToFirestore(
+  articles: ScholarArticle[]
+): Promise<number> {
+  let count = 0;
+  for (const article of articles) {
+    try {
+      const docRef = doc(db, 'scholarRepository', article.id);
+      await setDoc(
+        docRef,
+        {
+          ...article,
+          syncedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
+      count++;
+    } catch (e) {
+      console.warn(`Sync Scholar article ${article.id} notice:`, e);
+    }
+  }
+  return count;
+}
+
+/**
+ * Realtime listener for Google Scholar repository in Firestore
+ */
+export function subscribeScholarArticles(
+  onUpdate: (articles: ScholarArticle[]) => void
+): () => void {
+  const collPath = 'scholarRepository';
+  try {
+    const q = query(collection(db, collPath));
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const articles: ScholarArticle[] = [];
+        snapshot.forEach((docSnap) => {
+          articles.push(docSnap.data() as ScholarArticle);
+        });
+        if (articles.length > 0) {
+          onUpdate(articles);
         }
       },
       (error) => {

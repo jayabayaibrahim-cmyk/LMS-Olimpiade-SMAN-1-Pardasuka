@@ -15,6 +15,7 @@ export interface GenerateQuestionsParams {
   count: number;
   topic: string;
   questionType: 'pilihan_ganda' | 'esai' | 'bergambar';
+  reasoningLevel?: 'standar' | 'sedang' | 'tinggi';
   customPrompt?: string;
   authorName?: string;
 }
@@ -415,6 +416,8 @@ export async function generateOsnQuestions(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
 
+    const reasoningMode = params.reasoningLevel || 'sedang';
+
     const response = await fetch('/api/ai/generate-questions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -426,6 +429,7 @@ export async function generateOsnQuestions(
         count,
         topic,
         questionType,
+        reasoningLevel: reasoningMode,
         customPrompt,
       }),
       signal: controller.signal,
@@ -441,8 +445,8 @@ export async function generateOsnQuestions(
         return {
           success: true,
           questions: data.questions,
-          source: data.source || 'gemini-3.8-flash',
-          note: data.note,
+          source: data.source || 'gemini-3.8-flash (penalaran sedang)',
+          note: data.note || `Soal ${subject} dirangkai via Engine Gemini 3.8 Flash (Penalaran Sedang).`,
         };
       }
     }
@@ -459,14 +463,19 @@ export async function generateOsnQuestions(
     try {
       const clientAi = new GoogleGenAI({ apiKey: clientApiKey });
       const systemPrompt = `Anda adalah Tim Ahli Penyusun Soal Olimpiade Sains Nasional (OSN) SMAN 1 PARDASUKA.
+Engine: Gemini 3.8 Flash dengan Mode Penalaran Sedang (Moderate Thinking / Chain-of-Thought).
+Lakukan dekonstruksi konsep, telaah prasyarat ilmiah, verifikasi hukum alam dan batasan fisis secara bertahap sebelum merangkum opsi jawaban dan pembahasan.
 Susun soal OSN bidang ${subject} tingkat ${level} dengan topik "${topic}", Taksonomi Bloom "${bloomTaxonomy}", Taksonomi SOLO "${soloTaxonomy}".
 Pastikan materi 100% murni bidang ${subject}.`;
 
       const response = await clientAi.models.generateContent({
         model: 'gemini-3.8-flash',
-        contents: `Buatkan ${count} butir soal ${subject} bertipe ${questionType} dengan topik "${topic}".`,
+        contents: `Gunakan penalaran sedang (medium reasoning): Buatkan ${count} butir soal ${subject} bertipe ${questionType} dengan topik "${topic}". Lakukan pembuktian analitis dan penalaran langkah demi langkah pada penjelasan ilmiah.`,
         config: {
           systemInstruction: systemPrompt,
+          thinkingConfig: {
+            thinkingBudget: 2048,
+          },
           responseMimeType: 'application/json',
           responseSchema: {
             type: Type.ARRAY,

@@ -168,6 +168,7 @@ export const AiQuestionGenerator: React.FC<AiQuestionGeneratorProps> = ({
   );
   const [count, setCount] = useState<number>(2);
   const [questionType, setQuestionType] = useState<'pilihan_ganda' | 'esai' | 'bergambar'>('pilihan_ganda');
+  const [reasoningLevel, setReasoningLevel] = useState<'standar' | 'sedang' | 'tinggi'>('sedang');
   const [customPrompt, setCustomPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [generatedList, setGeneratedList] = useState<Question[]>([]);
@@ -237,6 +238,7 @@ export const AiQuestionGenerator: React.FC<AiQuestionGeneratorProps> = ({
         count,
         topic,
         questionType,
+        reasoningLevel,
         customPrompt,
         authorName: currentUser?.name || 'AI Pembina SMAN 1 Pardasuka',
       });
@@ -392,8 +394,9 @@ export const AiQuestionGenerator: React.FC<AiQuestionGeneratorProps> = ({
               <span className="text-sm font-bold text-white flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-amber-400" /> Parameter Penyusunan Soal
               </span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-950 border border-purple-700/60 text-purple-300">
-                AI Engine
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-950 border border-amber-500/50 text-amber-300 flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-amber-400" />
+                Gemini 3.8 Flash • Penalaran Sedang
               </span>
             </div>
 
@@ -593,6 +596,26 @@ export const AiQuestionGenerator: React.FC<AiQuestionGeneratorProps> = ({
                     <option value="bergambar">Soal Bergambar (Diagram SVG)</option>
                   </select>
                 </div>
+              </div>
+
+              {/* Mode Penalaran Gemini (Sedang / Chain-of-Thought) */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-semibold text-purple-200">Engine AI & Mode Penalaran:</label>
+                  <span className="text-[10px] text-amber-300 font-bold bg-amber-950/80 px-2 py-0.5 rounded border border-amber-600/50">
+                    Gemini 3.8 Flash
+                  </span>
+                </div>
+                <select
+                  aria-label="Pilih Mode Penalaran Gemini"
+                  value={reasoningLevel}
+                  onChange={(e) => setReasoningLevel(e.target.value as 'standar' | 'sedang' | 'tinggi')}
+                  className="w-full bg-[#120924] border border-amber-600/60 rounded-xl px-3 py-2 text-white font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                >
+                  <option value="sedang">🧠 Penalaran Sedang (Gemini Thinking Engine 2048 - Rekomendasi OSN)</option>
+                  <option value="standar">⚡ Penalaran Cepat (Flash Standard Mode)</option>
+                  <option value="tinggi">🔬 Penalaran Tinggi (Deep Analytical Proof 4096)</option>
+                </select>
               </div>
 
               {/* Catatan Instruksi Khusus */}

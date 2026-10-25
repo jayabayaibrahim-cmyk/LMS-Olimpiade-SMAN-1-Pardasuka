@@ -169,10 +169,12 @@ app.post('/api/ai/generate-questions', async (req, res) => {
       topic = 'Aljabar dan Teori Bilangan',
       customPrompt = '',
       questionType = 'pilihan_ganda', // 'pilihan_ganda' | 'esai' | 'bergambar'
+      reasoningLevel = 'sedang', // 'standar' | 'sedang' | 'tinggi'
     } = req.body;
 
     const systemPrompt = `Anda adalah Tim Ahli Penyusun Soal Olimpiade Sains Nasional (OSN) dari Kemendikbudristek / Puspresnas dan Pembina Olimpiade SMAN 1 PARDASUKA.
 Tugas Anda adalah menyusun soal olimpiade sains yang berkualitas tinggi, orisinal, menantang (HOTS), sesuai dengan Taksonomi Bloom dan Taksonomi SOLO.
+Mode Penalaran: ${reasoningLevel.toUpperCase()} (Terapkan Chain-of-Thought / penalaran ilmiah bertahap sebelum merumuskan jawaban).
 
 DISIPLIN BIDANG MATA PELAJARAN (SANGAT KRUSIAL & MUTLAK):
 - Bidang Mata Pelajaran: ${subject}
@@ -195,6 +197,7 @@ Spesifikasi Permintaan:
 - Taksonomi SOLO Target: ${soloTaxonomy}
 - Topik / Materi Khusus: ${topic}
 - Jumlah Soal: ${count} butir
+- Mode Penalaran: ${reasoningLevel}
 - Tipe Format Soal: ${questionType} (pilihan_ganda = PG 5 opsi A-E; esai = soal uraian analisis mendalam dengan rubrik dan kunci esai; bergambar = soal yang dilengkapi diagram visual/skema ilmiah SVG)
 ${customPrompt ? `- Catatan Khusus Pengajar: ${customPrompt}` : ''}
 
@@ -208,9 +211,12 @@ Panduan Format Output:
     if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'MY_GEMINI_API_KEY') {
       const response = await ai.models.generateContent({
         model: 'gemini-3.8-flash',
-        contents: `Buatkan ${count} butir soal ${subject} bertipe ${questionType} tingkat ${level} dengan topik "${topic}", Taksonomi Bloom "${bloomTaxonomy}", dan Taksonomi SOLO "${soloTaxonomy}". Pastikan 100% soal dan pembahasan ilmiah adalah murni materi ${subject}.`,
+        contents: `Gunakan penalaran ilmiah ${reasoningLevel}: Buatkan ${count} butir soal ${subject} bertipe ${questionType} tingkat ${level} dengan topik "${topic}", Taksonomi Bloom "${bloomTaxonomy}", dan Taksonomi SOLO "${soloTaxonomy}". Pastikan 100% soal dan pembahasan ilmiah adalah murni materi ${subject}.`,
         config: {
           systemInstruction: systemPrompt,
+          thinkingConfig: {
+            thinkingBudget: reasoningLevel === 'tinggi' ? 4096 : reasoningLevel === 'sedang' ? 2048 : 0,
+          },
           responseMimeType: 'application/json',
           responseSchema: {
             type: Type.ARRAY,
@@ -246,7 +252,12 @@ Panduan Format Output:
 
       const responseText = response.text || '[]';
       const parsed = JSON.parse(responseText);
-      return res.json({ success: true, questions: parsed, source: 'gemini-3.8-flash' });
+      return res.json({
+        success: true,
+        questions: parsed,
+        source: `gemini-3.8-flash (penalaran ${reasoningLevel})`,
+        note: `Berhasil disusun via Engine Gemini 3.8 Flash (Mode Penalaran ${reasoningLevel.toUpperCase()}).`,
+      });
     }
 
     // Fallback high-fidelity curriculum engine if API key is not yet set
