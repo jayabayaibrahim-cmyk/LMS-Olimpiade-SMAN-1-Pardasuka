@@ -12,7 +12,15 @@ import {
   query,
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
-import { ExamResult, ExamPacket, UserProfile, BimbinganSchedule, LearningMedia } from '../types';
+import {
+  ExamResult,
+  ExamPacket,
+  UserProfile,
+  BimbinganSchedule,
+  LearningMedia,
+  Question,
+  OsnModule,
+} from '../types';
 import { ScholarArticle } from '../data/scholarRepositoryData';
 
 // Initialize Firebase App
@@ -483,4 +491,111 @@ export function subscribeScholarArticles(
     return () => {};
   }
 }
+
+/**
+ * Save Question to Firebase Firestore
+ */
+export async function saveQuestionToFirestore(question: Question): Promise<void> {
+  const docPath = `questions/${question.id}`;
+  try {
+    const docRef = doc(db, 'questions', question.id);
+    await setDoc(docRef, {
+      ...question,
+      syncedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, docPath);
+  }
+}
+
+/**
+ * Batch/multiple save questions to Firebase Firestore
+ */
+export async function saveMultipleQuestionsToFirestore(questionsList: Question[]): Promise<void> {
+  for (const q of questionsList) {
+    try {
+      const docRef = doc(db, 'questions', q.id);
+      await setDoc(
+        docRef,
+        {
+          ...q,
+          syncedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
+    } catch (e) {
+      console.warn(`Firestore save question ${q.id} notice:`, e);
+    }
+  }
+}
+
+/**
+ * Fetch all questions from Firebase Firestore
+ */
+export async function fetchQuestionsFromFirestore(): Promise<Question[]> {
+  const collPath = 'questions';
+  try {
+    const querySnapshot = await getDocs(collection(db, collPath));
+    const list: Question[] = [];
+    querySnapshot.forEach((d) => {
+      list.push(d.data() as Question);
+    });
+    return list;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, collPath);
+    return [];
+  }
+}
+
+/**
+ * Subscribe to realtime questions in Firebase Firestore
+ */
+export function subscribeQuestions(
+  onUpdate: (questions: Question[]) => void
+): () => void {
+  const collPath = 'questions';
+  try {
+    const q = query(collection(db, collPath));
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const list: Question[] = [];
+        snapshot.forEach((docSnap) => {
+          list.push(docSnap.data() as Question);
+        });
+        if (list.length > 0) {
+          onUpdate(list);
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, collPath);
+      }
+    );
+    return unsubscribe;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, collPath);
+    return () => {};
+  }
+}
+
+/**
+ * Save OSN Module to Firebase Firestore
+ */
+export async function saveModuleToFirestore(moduleItem: OsnModule): Promise<void> {
+  const docPath = `modules/${moduleItem.id}`;
+  try {
+    const docRef = doc(db, 'modules', moduleItem.id);
+    await setDoc(
+      docRef,
+      {
+        ...moduleItem,
+        syncedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, docPath);
+  }
+}
+
 

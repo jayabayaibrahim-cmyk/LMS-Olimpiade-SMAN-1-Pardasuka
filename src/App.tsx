@@ -41,6 +41,10 @@ import {
   saveExamPacketToFirestore,
   saveLearningMediaToFirestore,
   subscribeLearningMedia,
+  saveQuestionToFirestore,
+  saveMultipleQuestionsToFirestore,
+  saveScheduleToFirestore,
+  saveModuleToFirestore,
 } from './services/firebase';
 
 export default function App() {
@@ -263,6 +267,9 @@ export default function App() {
 
   const handleAddQuestion = (newQuestion: Question) => {
     setQuestions((prev) => [newQuestion, ...prev]);
+    saveQuestionToFirestore(newQuestion).catch((err) =>
+      console.warn('Firebase question sync warning:', err)
+    );
   };
 
   const handleDeleteQuestion = (id: string) => {
@@ -271,24 +278,37 @@ export default function App() {
 
   const handleAddBimbinganSchedule = (newSchedule: BimbinganSchedule) => {
     setBimbinganSchedules((prev) => [newSchedule, ...prev]);
+    saveScheduleToFirestore(newSchedule).catch((err) =>
+      console.warn('Firebase schedule sync warning:', err)
+    );
   };
 
   const handleAddQuestionsToSchedule = (scheduleId: string, newQuestions: Question[]) => {
     setBimbinganSchedules((prev) =>
       prev.map((s) => {
         if (s.id === scheduleId) {
-          return {
+          const updated = {
             ...s,
             coachingQuestions: [...s.coachingQuestions, ...newQuestions],
           };
+          saveScheduleToFirestore(updated).catch((err) =>
+            console.warn('Firebase schedule questions sync warning:', err)
+          );
+          return updated;
         }
         return s;
       })
+    );
+    saveMultipleQuestionsToFirestore(newQuestions).catch((err) =>
+      console.warn('Firebase multiple questions sync warning:', err)
     );
   };
 
   const handleAddModule = (newModule: OsnModule) => {
     setModules((prev) => [newModule, ...prev]);
+    saveModuleToFirestore(newModule).catch((err) =>
+      console.warn('Firebase module sync warning:', err)
+    );
   };
 
   const handleAddQuestionsToModule = (moduleId: string, newQuestions: Question[]) => {
@@ -296,13 +316,20 @@ export default function App() {
       prev.map((m) => {
         if (m.id === moduleId) {
           const existingQuestions = m.moduleQuestions || [];
-          return {
+          const updated = {
             ...m,
             moduleQuestions: [...existingQuestions, ...newQuestions],
           };
+          saveModuleToFirestore(updated).catch((err) =>
+            console.warn('Firebase module questions sync warning:', err)
+          );
+          return updated;
         }
         return m;
       })
+    );
+    saveMultipleQuestionsToFirestore(newQuestions).catch((err) =>
+      console.warn('Firebase multiple questions sync warning:', err)
     );
   };
 

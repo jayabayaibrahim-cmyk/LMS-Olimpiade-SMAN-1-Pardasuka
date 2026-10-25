@@ -239,6 +239,7 @@ export const AiQuestionGenerator: React.FC<AiQuestionGeneratorProps> = ({
         topic,
         questionType,
         reasoningLevel,
+        purpose: targetBimbinganId ? 'bimbingan' : 'terjadwal',
         customPrompt,
         authorName: currentUser?.name || 'AI Pembina SMAN 1 Pardasuka',
       });

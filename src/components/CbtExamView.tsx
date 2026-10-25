@@ -29,7 +29,8 @@ import { printCbtResultPdf } from '../services/pdfPrintService';
 import { QuestionAnalysisView } from './QuestionAnalysisView';
 import { CbtExamRecapModal } from './CbtExamRecapModal';
 import { shuffleQuestionsForAccount, shuffleQuestionsArray } from '../utils/shuffleUtils';
-import { explainQuestionRemediation } from '../services/aiQuestionService';
+import { explainQuestionRemediation, generateOsnQuestions } from '../services/aiQuestionService';
+import { saveMultipleQuestionsToFirestore, saveExamPacketToFirestore } from '../services/firebase';
 
 interface CbtExamViewProps {
   exams: ExamPacket[];
@@ -1247,6 +1248,37 @@ export const CbtExamView: React.FC<CbtExamViewProps> = ({
     setShowManualForm(false);
   };
 
+  const [isGeneratingCbtAi, setIsGeneratingCbtAi] = useState(false);
+
+  const handleGenerateCbtQuestionsAi = async () => {
+    setIsGeneratingCbtAi(true);
+    try {
+      const res = await generateOsnQuestions({
+        subject: cbtSubject,
+        level: cbtLevel,
+        bloomTaxonomy: 'C4 (Menganalisis)',
+        soloTaxonomy: 'Relational',
+        count: 5,
+        purpose: 'cbt',
+        reasoningLevel: 'sedang',
+        topic: cbtTitle || 'Ujian CBT Terstandarisasi',
+        questionType: 'pilihan_ganda',
+      });
+
+      if (res && res.questions && res.questions.length > 0) {
+        setCbtNewQuestions((prev) => [...prev, ...res.questions]);
+        saveMultipleQuestionsToFirestore(res.questions).catch((err) =>
+          console.warn('Firebase CBT questions sync warning:', err)
+        );
+      }
+    } catch (err) {
+      console.error('Failed to generate CBT AI questions:', err);
+      alert('Gagal menghasilkan soal CBT dengan AI. Silakan coba lagi.');
+    } finally {
+      setIsGeneratingCbtAi(false);
+    }
+  };
+
   const handleShuffleSelectedQuestions = () => {
     if (selectedBankQuestionIds.length > 1) {
       setSelectedBankQuestionIds((prev) => shuffleQuestionsArray(prev));
@@ -1273,7 +1305,7 @@ export const CbtExamView: React.FC<CbtExamViewProps> = ({
     let allAssembledQuestions = [...orderedBankQuestions, ...cbtNewQuestions];
 
     if (allAssembledQuestions.length === 0) {
-      alert('Peringatan: Silakan pilih minimal 1 butir soal dari Bank Soal atau buat soal CBT manual untuk jadwal ini.');
+      alert('Peringatan: Silakan pilih minimal 1 butir soal dari Bank Soal atau buat soal CBT manual/AI untuk jadwal ini.');
       return;
     }
 
@@ -1302,6 +1334,15 @@ export const CbtExamView: React.FC<CbtExamViewProps> = ({
     if (onAddExamPacket) {
       onAddExamPacket(newExamPacket);
     }
+
+    // Direct Firestore sync resilience for Firebase & Vercel
+    saveExamPacketToFirestore(newExamPacket).catch((err) =>
+      console.warn('Firebase CBT exam packet sync warning:', err)
+    );
+    saveMultipleQuestionsToFirestore(allAssembledQuestions).catch((err) =>
+      console.warn('Firebase CBT questions sync warning:', err)
+    );
+
     setShowCreateCbtModal(false);
     setCbtTitle('');
     setSelectedBankQuestionIds([]);
@@ -1741,7 +1782,17 @@ export const CbtExamView: React.FC<CbtExamViewProps> = ({
                   <h4 className="font-bold text-amber-300 text-xs">
                     2. Susun Butir Soal CBT (Total: {selectedBankQuestionIds.length + cbtNewQuestions.length} Soal)
                   </h4>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={isGeneratingCbtAi}
+                      onClick={handleGenerateCbtQuestionsAi}
+                      className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 text-white font-bold text-[11px] flex items-center gap-1.5 shadow-md cursor-pointer disabled:opacity-50 transition-all"
+                      title="Generate 5 butir soal CBT standar OSN khusus dengan Gemini Flash 3.8 & Penalaran Sedang"
+                    >
+                      <Sparkles className={`w-3.5 h-3.5 text-cyan-200 ${isGeneratingCbtAi ? 'animate-spin' : ''}`} />
+                      <span>{isGeneratingCbtAi ? 'Menalar Soal CBT AI...' : '+ Generate Soal CBT AI'}</span>
+                    </button>
                     <button
                       type="button"
                       onClick={handleShuffleSelectedQuestions}
@@ -1907,6 +1958,50 @@ export const CbtExamView: React.FC<CbtExamViewProps> = ({
                       >
                         + Simpan Soal ke Paket CBT
                       </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* List Soal Baru / AI yang Disusun */}
+                {cbtNewQuestions.length > 0 && (
+                  <div className="space-y-2 p-3 rounded-xl bg-purple-950/50 border border-purple-800/80">
+                    <div className="flex items-center justify-between">
+                      <span className="block font-bold text-emerald-300 text-xs flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                        Soal CBT Tergenerate AI / Manual ({cbtNewQuestions.length} Butir):
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setCbtNewQuestions([])}
+                        className="text-[10px] text-rose-400 hover:text-rose-300 underline cursor-pointer"
+                      >
+                        Bersihkan Semua
+                      </button>
+                    </div>
+                    <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                      {cbtNewQuestions.map((q, idx) => (
+                        <div
+                          key={q.id || idx}
+                          className="p-2 rounded-lg bg-[#140a28] border border-purple-800/70 flex items-start justify-between gap-2 text-[11px]"
+                        >
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[10px] font-bold text-cyan-300">#{idx + 1} {q.id}</span>
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-900 text-purple-200">{q.bloomLevel}</span>
+                              <span className="text-[10px] text-amber-300 font-mono font-bold">Kunci: {String.fromCharCode(65 + q.correctAnswerIndex)}</span>
+                            </div>
+                            <p className="text-purple-100 line-clamp-1">{q.questionText}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setCbtNewQuestions((prev) => prev.filter((_, i) => i !== idx))}
+                            className="text-rose-400 hover:text-rose-300 p-1 rounded hover:bg-rose-950/50 cursor-pointer"
+                            title="Hapus butir soal ini dari paket CBT"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
