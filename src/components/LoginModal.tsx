@@ -62,7 +62,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   // Simple Login Form state
   const [loginUser, setLoginUser] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
-  const [showDemoList, setShowDemoList] = useState(false);
 
   // Register Form state
   const [regFullName, setRegFullName] = useState('');
@@ -112,17 +111,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     }
 
     if (found.password && loginPassword && found.password !== loginPassword) {
-      setErrorMsg('Password salah. Silakan periksa kembali atau gunakan akun demo.');
+      setErrorMsg('Password salah. Silakan periksa kembali password akun Anda.');
       return;
     }
 
     // Login dengan profil yang sesuai (otomatis memuat mapel yang sudah dipilih saat daftar)
     onLogin(found);
-  };
-
-  // Quick Demo Account Selection
-  const handleQuickSelect = (user: UserProfile) => {
-    onLogin(user);
   };
 
   // 2. REGISTRASI: FORMULIR PENDAFTARAN LENGKAP
@@ -351,62 +345,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 <ArrowRight className="w-4 h-4" />
               </button>
             </form>
-
-            {/* Quick Demo Accounts Drawer Toggle */}
-            <div className="pt-2 border-t border-purple-900/40 space-y-2">
-              <button
-                type="button"
-                onClick={() => setShowDemoList(!showDemoList)}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-[#130726] border border-purple-900/60 text-purple-300 hover:text-white text-[11px] font-semibold transition-colors cursor-pointer"
-              >
-                <span className="flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                  Akun Demo Cepat (1-Klik Masuk)
-                </span>
-                {showDemoList ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-              </button>
-
-              {showDemoList && (
-                <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1 animate-fadeIn">
-                  {allUsers.map((user) => (
-                    <div
-                      key={user.id}
-                      onClick={() => handleQuickSelect(user)}
-                      className="p-2.5 rounded-xl bg-[#170c2d] hover:bg-[#231245] border border-purple-800/40 hover:border-purple-500/80 flex items-center justify-between transition-all cursor-pointer group shadow"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <img
-                          src={user.avatar}
-                          alt={user.name}
-                          className="w-7 h-7 rounded-lg object-cover border border-purple-600/60 shrink-0"
-                        />
-                        <div className="text-left">
-                          <h4 className="text-[11px] font-bold text-white group-hover:text-amber-300 transition-colors truncate max-w-[170px]">
-                            {user.name}
-                          </h4>
-                          <span className="text-[10px] text-purple-300/70 block">
-                            User: <code>{user.username || user.nisnOrNip}</code>
-                            {user.subject && ` • ${user.subject}`}
-                          </span>
-                        </div>
-                      </div>
-
-                      <span
-                        className={`text-[9px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${
-                          user.role === 'admin'
-                            ? 'bg-rose-950 text-rose-300 border-rose-600/60'
-                            : user.role === 'teacher'
-                            ? 'bg-amber-950 text-amber-300 border-amber-600/60'
-                            : 'bg-purple-950 text-purple-300 border-purple-700/60'
-                        }`}
-                      >
-                        {user.role === 'admin' ? 'Admin' : user.role === 'teacher' ? 'Guru' : 'Siswa'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
 
             {/* Footer switcher to register */}
             <div className="text-center pt-2 text-xs text-purple-300/80">

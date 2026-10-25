@@ -39,6 +39,7 @@ interface ModulesViewProps {
   currentUser: UserProfile;
   onSelectSubjectForGenerator: (subject: OsnSubject) => void;
   setActiveTab: (tab: string) => void;
+  activeSubject?: OsnSubject;
 }
 
 const OSN_SUBJECT_LIST: { subject: OsnSubject; icon: string; title: string }[] = [
@@ -76,17 +77,27 @@ export const ModulesView: React.FC<ModulesViewProps> = ({
   currentUser,
   onSelectSubjectForGenerator,
   setActiveTab,
+  activeSubject,
 }) => {
   const isStudent = currentUser.role === 'student';
   const isAdmin = currentUser.role === 'admin';
-  const userSelectedSubject: OsnSubject = currentUser.subject || 'Matematika';
-  const [selectedSubject, setSelectedSubject] = useState<OsnSubject>(userSelectedSubject);
+  const userEnrolledSubject: OsnSubject | undefined = currentUser.subject;
+
+  // Initial subject: For students, strictly their assigned subject.
+  // For teachers/admins, sync with activeSubject or userEnrolledSubject or fallback to Matematika.
+  const initialSub: OsnSubject = (isStudent && userEnrolledSubject)
+    ? userEnrolledSubject
+    : (activeSubject || userEnrolledSubject || 'Matematika');
+
+  const [selectedSubject, setSelectedSubject] = useState<OsnSubject>(initialSub);
 
   React.useEffect(() => {
-    if (!isAdmin && currentUser.subject) {
-      setSelectedSubject(currentUser.subject);
+    if (isStudent && userEnrolledSubject) {
+      setSelectedSubject(userEnrolledSubject);
+    } else if (activeSubject) {
+      setSelectedSubject(activeSubject);
     }
-  }, [isAdmin, currentUser.subject]);
+  }, [isStudent, userEnrolledSubject, activeSubject]);
 
   // Modal "+ Tambah Modul / Silabus Pembinaan Baru"
   const [showAddModuleModal, setShowAddModuleModal] = useState(false);
@@ -295,7 +306,10 @@ export const ModulesView: React.FC<ModulesViewProps> = ({
           {/* Button: + Tambah Modul / Silabus Pembinaan (Khusus Guru / Admin) */}
           {!isStudent && (
             <button
-              onClick={() => setShowAddModuleModal(true)}
+              onClick={() => {
+                setNewModSubject(selectedSubject);
+                setShowAddModuleModal(true);
+              }}
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold transition-all shadow-md cursor-pointer"
             >
               <Plus className="w-4 h-4" />
@@ -313,24 +327,65 @@ export const ModulesView: React.FC<ModulesViewProps> = ({
       )}
 
       {/* 9 Subjects Horizontal Selector */}
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
-        {OSN_SUBJECT_LIST.map((item) => (
-          <button
-            key={item.subject}
-            onClick={() => {
-              setSelectedSubject(item.subject);
-              setShowQuestionGenBox(false);
-            }}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border cursor-pointer shrink-0 ${
-              selectedSubject === item.subject
-                ? 'bg-purple-600 text-white border-purple-400 shadow-md shadow-purple-950'
-                : 'bg-[#180e2f]/80 text-purple-300 border-purple-800/40 hover:bg-[#201242] hover:text-white'
-            }`}
-          >
-            <span className="text-sm">{item.icon}</span>
-            <span>{item.subject}</span>
-          </button>
-        ))}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between text-xs text-purple-300">
+          <span className="font-semibold text-[11px] text-purple-300/80 uppercase tracking-wider">
+            Pilih Mata Pelajaran Bimbingan OSN:
+          </span>
+          <span className="text-[11px] text-purple-400">
+            {isStudent && userEnrolledSubject
+              ? `Khusus Akun Siswa: ${userEnrolledSubject}`
+              : `Mata Pelajaran Aktif: ${selectedSubject}`}
+          </span>
+        </div>
+
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+          {OSN_SUBJECT_LIST.map((item) => {
+            const isActive = selectedSubject === item.subject;
+            const isStudentLockedOut = isStudent && !!userEnrolledSubject && userEnrolledSubject !== item.subject;
+
+            return (
+              <button
+                key={item.subject}
+                disabled={isStudentLockedOut}
+                onClick={() => {
+                  if (isStudentLockedOut) return;
+                  setSelectedSubject(item.subject);
+                  if (onSelectSubjectForGenerator) {
+                    onSelectSubjectForGenerator(item.subject);
+                  }
+                  setShowQuestionGenBox(false);
+                }}
+                title={
+                  isStudentLockedOut
+                    ? `Mata pelajaran ${item.subject} tidak aktif (Akun Anda terdaftar khusus bidang ${userEnrolledSubject})`
+                    : isActive
+                    ? `Mata pelajaran aktif: ${item.subject}`
+                    : `Aktifkan mata pelajaran: ${item.subject}`
+                }
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border shrink-0 ${
+                  isActive
+                    ? 'bg-purple-600 text-white border-purple-400 shadow-md shadow-purple-950 cursor-default'
+                    : isStudentLockedOut
+                    ? 'bg-[#120824]/40 text-purple-400/40 border-purple-950/60 cursor-not-allowed opacity-50'
+                    : 'bg-[#180e2f]/80 text-purple-300 border-purple-800/40 hover:bg-[#201242] hover:text-white cursor-pointer'
+                }`}
+              >
+                <span className="text-sm">{item.icon}</span>
+                <span>{item.subject}</span>
+                <span
+                  className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                    isActive
+                      ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/50'
+                      : 'bg-purple-950 text-purple-400/60 border border-purple-900/40'
+                  }`}
+                >
+                  {isActive ? 'Aktif' : 'Tidak Aktif'}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Module Content Detail */}
@@ -340,9 +395,15 @@ export const ModulesView: React.FC<ModulesViewProps> = ({
           {/* Main Card */}
           <div className="bg-[#180e2f]/90 border border-purple-800/40 rounded-2xl p-6 space-y-5 shadow-xl">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="text-xs font-bold px-2.5 py-1 rounded bg-purple-950 text-purple-200 border border-purple-700/60">
-                Bidang: {activeModule.subject}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold px-2.5 py-1 rounded bg-purple-950 text-purple-200 border border-purple-700/60">
+                  Bidang: {activeModule.subject}
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-600/50 flex items-center gap-1 font-mono">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                  Mata Pelajaran Aktif
+                </span>
+              </div>
               <span className="text-xs font-semibold text-amber-400">{activeModule.difficultyTier}</span>
             </div>
 

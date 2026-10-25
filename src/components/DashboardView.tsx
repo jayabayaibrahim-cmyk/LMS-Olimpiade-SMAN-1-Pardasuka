@@ -255,7 +255,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   {currentUser.role === 'student' ? 'Bank Soal' : 'Buat Soal AI'}
                 </button>
                 <button
-                  onClick={() => setActiveTab('modules')}
+                  onClick={() => {
+                    onSelectSubjectForGenerator(item.subject);
+                    setActiveTab('modules');
+                  }}
                   className="py-1.5 px-3 rounded-lg bg-purple-900/40 hover:bg-purple-900/80 text-[11px] font-medium text-amber-300 transition-colors cursor-pointer"
                 >
                   Silabus

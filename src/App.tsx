@@ -431,6 +431,7 @@ export default function App() {
             currentUser={currentUser}
             onSelectSubjectForGenerator={handleSelectSubjectForGen}
             setActiveTab={setActiveTab}
+            activeSubject={selectedSubjectForGenerator}
           />
         )}
 
