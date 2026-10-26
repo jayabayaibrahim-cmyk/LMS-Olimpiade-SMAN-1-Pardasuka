@@ -28,10 +28,30 @@ export function getSubjectAbbr(subject: string): string {
  * 'Kabupaten (OSN-K)' -> 'OSN-K'
  */
 export function getCompetitionLevelAbbr(level: string): string {
+  if (!level) return '';
   if (level.includes('OSN-K')) return 'OSN-K';
   if (level.includes('OSN-P')) return 'OSN-P';
   if (level.includes('OSN-N')) return 'OSN-N';
+  if (level.toLowerCase().includes('sekolah')) return 'Sekolah';
+  if (level.toLowerCase().includes('internasional')) return 'Intl';
   return level;
+}
+
+/**
+ * Singkatan Ringkas Mode Generator OSN (Mode A - I)
+ */
+export function getGeneratorModeAbbr(mode?: string): string {
+  if (!mode) return '';
+  if (mode.includes('Mode A')) return 'Mode A: Konsep';
+  if (mode.includes('Mode B')) return 'Mode B: Sekolah';
+  if (mode.includes('Mode C')) return 'Mode C: Kab/Kota';
+  if (mode.includes('Mode D')) return 'Mode D: Provinsi';
+  if (mode.includes('Mode E')) return 'Mode E: Nasional';
+  if (mode.includes('Mode F')) return 'Mode F: Simulasi';
+  if (mode.includes('Mode G')) return 'Mode G: Mendalam';
+  if (mode.includes('Mode H')) return 'Mode H: Remedial';
+  if (mode.includes('Mode I')) return 'Mode I: Bank LMS';
+  return mode;
 }
 
 /**

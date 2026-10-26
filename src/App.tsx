@@ -405,6 +405,8 @@ export default function App() {
             onClearActiveExamFromDashboard={() => setActiveExamFromDashboard(null)}
             onSendToGoogleSheets={handleSendToGoogleSheets}
             onAddExamPacket={handleAddExamPacket}
+            onAddQuestion={handleAddQuestion}
+            onAddQuestions={(newQs) => setQuestions((prev) => [...newQs, ...prev])}
             questionBank={questions}
             examResults={examResults}
             setActiveTab={setActiveTab}

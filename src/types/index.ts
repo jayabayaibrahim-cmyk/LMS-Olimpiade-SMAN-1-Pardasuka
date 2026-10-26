@@ -25,9 +25,35 @@ export type SoloTaxonomy =
   | 'Extended Abstract';
 
 export type CompetitionLevel =
+  | 'Sekolah'
   | 'Kabupaten (OSN-K)'
   | 'Provinsi (OSN-P)'
-  | 'Nasional (OSN-N)';
+  | 'Nasional (OSN-N)'
+  | 'Internasional';
+
+export type GeneratorMode =
+  | 'Mode A (Latihan Konsep)'
+  | 'Mode B (Seleksi Sekolah)'
+  | 'Mode C (Seleksi Kabupaten/Kota)'
+  | 'Mode D (Seleksi Provinsi)'
+  | 'Mode E (Persiapan Nasional)'
+  | 'Mode F (Simulasi Olimpiade)'
+  | 'Mode G (Pembahasan Mendalam)'
+  | 'Mode H (Remedial & Pengayaan)'
+  | 'Mode I (Bank Soal LMS)';
+
+export type TargetGrade = 'X' | 'XI' | 'XII' | 'Campuran';
+
+export type QuestionDifficulty =
+  | 'Dasar'
+  | 'Menengah'
+  | 'Sulit'
+  | 'Sangat Sulit'
+  | 'Campuran'
+  | 'Mudah'
+  | 'Sedang'
+  | 'HOTS / Sulit'
+  | 'Olimpiade Master';
 
 export type UserRole = 'student' | 'teacher' | 'admin';
 
@@ -79,16 +105,37 @@ export interface Question {
   bloomLevel: BloomTaxonomy;
   soloLevel: SoloTaxonomy;
   level: CompetitionLevel;
-  difficulty: 'Mudah' | 'Sedang' | 'HOTS / Sulit' | 'Olimpiade Master';
+  difficulty: QuestionDifficulty | string;
   estimatedMinutes?: number;
   hint?: string;
   author?: string;
   createdAt?: string;
-  questionType?: 'pilihan_ganda' | 'esai' | 'bergambar';
+  questionType?: 'pilihan_ganda' | 'esai' | 'bergambar' | string;
   diagramSvg?: string; // Untuk soal bergambar / skema visual
   imageCaption?: string;
   rubricOrKeyPoints?: string[]; // Untuk soal esai
   sampleEssayAnswer?: string; // Kunci jawaban esai
+
+  // Atribut Baru Berbasis MASTER PROMPT GENERATOR SOAL OLIMPIADE SMA
+  targetClass?: TargetGrade | string; // Kelas sasaran: X, XI, XII, atau Campuran
+  competitionMode?: GeneratorMode | string; // Mode A s/d I
+  indicator?: string; // Indikator kompetensi
+  mainConcept?: string; // Konsep atau rumus utama
+  commonMistakes?: string; // Kesalahan umum yang perlu dihindari (common misconceptions)
+  maxScore?: number; // Skor maksimum (default: 4 untuk PG, 100 untuk esai)
+  referenceSource?: string; // Referensi konsep atau sumber tepercaya
+
+  // Metadata Orisinalitas, Variasi & Anti-Duplikasi (Gemini AI SMAN 1 Pardasuka)
+  concept?: string;
+  subtopic?: string;
+  skillTested?: string;
+  problemStructure?: string; // Model masalah (misal: pereaksi pembatas, penelusuran mundur, multi-tahap)
+  reasoningMethod?: string; // Strategi penyelesaian (misal: konservasi massa, inferensi data empirik)
+  contextType?: string; // Konteks (analisis lab, sintesis industri, lingkungan)
+  dataRepresentation?: string; // Bentuk data (mol, volume gas, titrasi, komposisi %)
+  noveltySummary?: string; // Ringkasan keunikan & perbedaan substantif dari bank soal
+  similarityStatus?: string; // pending_external_check | verified_unique
+  validationStatus?: string; // valid | pending
 }
 
 export interface ExamPacket {

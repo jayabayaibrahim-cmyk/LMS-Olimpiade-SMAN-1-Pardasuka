@@ -16,12 +16,10 @@ import {
   Building,
   BarChart3,
   UserPlus,
-  Download,
   Youtube,
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { getSchoolConfig, SchoolConfig } from '../services/schoolConfigService';
-import { InstallAppModal } from './InstallAppModal';
 import { getSubjectAbbr, getRoleAbbr } from '../utils/abbreviations';
 
 interface NavbarProps {
@@ -52,7 +50,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenSchoolSettings,
 }) => {
   const [schoolConfig, setSchoolConfig] = useState<SchoolConfig>(getSchoolConfig());
-  const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
 
   useEffect(() => {
     const handleConfigUpdate = (e: any) => {
@@ -240,18 +237,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </nav>
 
           {/* Right Controls: 1-Device Status & Login/User Switcher */}
-          {/* Right Controls: 1-Device Status & Login/User Switcher */}
           <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-            {/* Download / Install App Button */}
-            <button
-              onClick={() => setIsInstallModalOpen(true)}
-              title="Download & Pasang Aplikasi ke Layar Utama"
-              className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-600/60 text-emerald-300 hover:text-white text-xs font-semibold transition-all shadow-sm cursor-pointer"
-            >
-              <Download className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Download App</span>
-            </button>
-
             {/* 1-Device Lock Indicator Pill (Hanya Tampil di Akun Admin) */}
             {currentUser.role === 'admin' && (
               <div
@@ -414,21 +400,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             </>
           )}
-          <button
-            onClick={() => setIsInstallModalOpen(true)}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold shrink-0 whitespace-nowrap bg-emerald-950/80 text-emerald-300 border border-emerald-600/60 hover:text-white cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Unduh App</span>
-          </button>
         </div>
       </div>
-
-      {/* Install App Modal */}
-      <InstallAppModal
-        isOpen={isInstallModalOpen}
-        onClose={() => setIsInstallModalOpen(false)}
-      />
     </header>
   );
 };

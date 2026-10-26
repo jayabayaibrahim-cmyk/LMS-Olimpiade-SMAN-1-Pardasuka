@@ -19,6 +19,7 @@ import {
   GraduationCap,
   Calendar,
   BarChart3,
+  AlertTriangle,
 } from 'lucide-react';
 import { QuestionAnalysisView } from './QuestionAnalysisView';
 import {
@@ -29,10 +30,20 @@ import {
   CompetitionLevel,
   BimbinganSchedule,
   UserProfile,
+  GeneratorMode,
+  TargetGrade,
+  QuestionDifficulty,
 } from '../types';
 import { exportQuestionsToCsv, exportQuestionsToJson } from '../services/gasExport';
 import { GoogleScholarRepositoryView } from './GoogleScholarRepositoryView';
 import { generateOsnQuestions } from '../services/aiQuestionService';
+import {
+  getSubjectAbbr,
+  getCompetitionLevelAbbr,
+  getBloomAbbr,
+  getSoloAbbr,
+  getGeneratorModeAbbr,
+} from '../utils/abbreviations';
 
 interface AiQuestionGeneratorProps {
   questions: Question[];
@@ -43,6 +54,33 @@ interface AiQuestionGeneratorProps {
   onAddQuestionsToSchedule?: (scheduleId: string, questions: Question[]) => void;
   currentUser?: UserProfile;
 }
+
+const GENERATOR_MODES: { mode: GeneratorMode; label: string; desc: string }[] = [
+  { mode: 'Mode A (Latihan Konsep)', label: 'Mode A — Latihan Konsep', desc: 'Penguatan konsep dasar materi' },
+  { mode: 'Mode B (Seleksi Sekolah)', label: 'Mode B — Seleksi Sekolah', desc: 'Penjaringan peserta olimpiade sekolah' },
+  { mode: 'Mode C (Seleksi Kabupaten/Kota)', label: 'Mode C — Seleksi Kab/Kota', desc: 'Penalaran mendalam & analitis (OSN-K)' },
+  { mode: 'Mode D (Seleksi Provinsi)', label: 'Mode D — Seleksi Provinsi', desc: 'Integrasi konsep lanjutan multi-cabang (OSN-P)' },
+  { mode: 'Mode E (Persiapan Nasional)', label: 'Mode E — Persiapan Nasional', desc: 'Soal menantang & nonrutin (OSN-N)' },
+  { mode: 'Mode F (Simulasi Olimpiade)', label: 'Mode F — Simulasi Olimpiade', desc: 'Simulasi ujian dengan batas waktu & skor' },
+  { mode: 'Mode G (Pembahasan Mendalam)', label: 'Mode G — Pembahasan Mendalam', desc: 'Solusi alternatif & pedagogi mendalam' },
+  { mode: 'Mode H (Remedial & Pengayaan)', label: 'Mode H — Remedial & Pengayaan', desc: 'Penyesuaian kelemahan & akselerasi siswa' },
+  { mode: 'Mode I (Bank Soal LMS)', label: 'Mode I — Bank Soal LMS', desc: 'Format data terstruktur siap CBT/LMS' },
+];
+
+const TARGET_GRADES: { value: TargetGrade; label: string }[] = [
+  { value: 'X', label: 'Kelas X' },
+  { value: 'XI', label: 'Kelas XI (Rekomendasi)' },
+  { value: 'XII', label: 'Kelas XII' },
+  { value: 'Campuran', label: 'Campuran (X, XI, XII)' },
+];
+
+const DIFFICULTY_OPTIONS: { value: QuestionDifficulty; label: string; desc: string }[] = [
+  { value: 'Campuran', label: 'Campuran (Standar Master Prompt)', desc: '20% Dasar, 30% Menengah, 30% Sulit, 20% Sangat Sulit' },
+  { value: 'Dasar', label: 'Dasar (Fondasi Konsep)', desc: 'Penguasaan konsep dan rumus fundamental' },
+  { value: 'Menengah', label: 'Menengah (Aplikasi Konsep)', desc: 'Penerapan konsep pada variasi kasus baru' },
+  { value: 'Sulit', label: 'Sulit (HOTS & Analisis)', desc: 'Integrasi beberapa konsep & dekomposisi sistem' },
+  { value: 'Sangat Sulit', label: 'Sangat Sulit (Nonrutin)', desc: 'Pemecahan masalah tingkat tinggi' },
+];
 
 const OSN_SUBJECTS: OsnSubject[] = [
   'Matematika',
@@ -161,14 +199,17 @@ export const AiQuestionGenerator: React.FC<AiQuestionGeneratorProps> = ({
   // Generator form state
   const [subject, setSubject] = useState<OsnSubject>(selectedSubjectDefault);
   const [level, setLevel] = useState<CompetitionLevel>('Kabupaten (OSN-K)');
+  const [generatorMode, setGeneratorMode] = useState<GeneratorMode>('Mode C (Seleksi Kabupaten/Kota)');
+  const [targetClass, setTargetClass] = useState<TargetGrade>('XI');
+  const [difficulty, setDifficulty] = useState<QuestionDifficulty>('Campuran');
   const [bloomTaxonomy, setBloomTaxonomy] = useState<BloomTaxonomy>('C4 (Menganalisis)');
   const [soloTaxonomy, setSoloTaxonomy] = useState<SoloTaxonomy>('Relational');
   const [topic, setTopic] = useState(
     DEFAULT_TOPICS_PER_SUBJECT[selectedSubjectDefault] || 'Aljabar, Teori Bilangan & Polinomial'
   );
   const [count, setCount] = useState<number>(2);
-  const [questionType, setQuestionType] = useState<'pilihan_ganda' | 'esai' | 'bergambar'>('pilihan_ganda');
-  const [reasoningLevel, setReasoningLevel] = useState<'standar' | 'sedang' | 'tinggi'>('sedang');
+  const [questionType, setQuestionType] = useState<'pilihan_ganda' | 'esai' | 'bergambar' | string>('pilihan_ganda');
+  const [reasoningLevel, setReasoningLevel] = useState<'standar' | 'sedang' | 'tinggi'>('tinggi');
   const [customPrompt, setCustomPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [generatedList, setGeneratedList] = useState<Question[]>([]);
@@ -238,22 +279,30 @@ export const AiQuestionGenerator: React.FC<AiQuestionGeneratorProps> = ({
         count,
         topic,
         questionType,
-        reasoningLevel,
+        reasoningLevel: reasoningLevel === 'tinggi' ? 'high' : reasoningLevel === 'standar' ? 'low' : 'medium',
         customPrompt,
         authorName: currentUser?.name || 'AI Pembina SMAN 1 Pardasuka',
+        existingQuestions: questions,
+        targetClass,
+        generatorMode,
+        difficulty,
+        schoolName: 'SMAN 1 Pardasuka',
       });
 
       if (result.success && Array.isArray(result.questions) && result.questions.length > 0) {
         setGeneratedList(result.questions);
 
+        // Otomatis simpan seluruh butir soal hasil generate ke Bank Soal Sekolah
+        result.questions.forEach((q) => onAddQuestion(q));
+
         if (targetBimbinganId && onAddQuestionsToSchedule) {
           onAddQuestionsToSchedule(targetBimbinganId, result.questions);
           setGeneratorNotice(
-            `Soal berhasil dirangkai dan dikaitkan khusus ke Jadwal Bimbingan yang dipilih!`
+            `✓ Sukses merangkai ${result.questions.length} butir soal ${subject}! Soal otomatis tersimpan ke Bank Soal Sekolah & ditautkan ke Jadwal Bimbingan.`
           );
         } else {
           setGeneratorNotice(
-            result.note || 'Soal berhasil dirangkai sesuai Taksonomi Bloom & SOLO SMAN 1 Pardasuka.'
+            `✓ Sukses merangkai ${result.questions.length} butir soal ${subject}! Seluruh butir soal telah otomatis tersimpan ke Bank Soal & siap dipilih saat membuat Paket Ujian CBT.`
           );
         }
       } else {
@@ -477,22 +526,79 @@ export const AiQuestionGenerator: React.FC<AiQuestionGeneratorProps> = ({
                 )}
               </div>
 
+              {/* Mode Generator OSN (Mode A - I Master Prompt) */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-semibold text-purple-200">Mode Generator OSN:</label>
+                  <span className="text-[10px] text-amber-300 font-bold bg-amber-950/80 px-2 py-0.5 rounded border border-amber-600/40">
+                    Master Prompt A–I
+                  </span>
+                </div>
+                <select
+                  aria-label="Pilih Mode Generator OSN"
+                  value={generatorMode}
+                  onChange={(e) => setGeneratorMode(e.target.value as GeneratorMode)}
+                  className="w-full bg-[#120924] border border-purple-700/60 rounded-xl px-3 py-2 text-white font-medium focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                >
+                  {GENERATOR_MODES.map((m) => (
+                    <option key={m.mode} value={m.mode}>
+                      {m.label} ({m.desc})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Kelas Sasaran & Tingkat Kesulitan */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-purple-200 mb-1">Kelas Sasaran:</label>
+                  <select
+                    aria-label="Pilih Kelas Sasaran"
+                    value={targetClass}
+                    onChange={(e) => setTargetClass(e.target.value as TargetGrade)}
+                    className="w-full bg-[#120924] border border-purple-700/60 rounded-xl px-3 py-2 text-white font-medium focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                  >
+                    {TARGET_GRADES.map((g) => (
+                      <option key={g.value} value={g.value}>
+                        {g.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-purple-200 mb-1">Tingkat Kesulitan:</label>
+                  <select
+                    aria-label="Pilih Tingkat Kesulitan"
+                    value={difficulty}
+                    onChange={(e) => setDifficulty(e.target.value as QuestionDifficulty)}
+                    className="w-full bg-[#120924] border border-purple-700/60 rounded-xl px-3 py-2 text-white font-medium focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                  >
+                    {DIFFICULTY_OPTIONS.map((d) => (
+                      <option key={d.value} value={d.value}>
+                        {d.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               {/* Tingkat Kompetisi */}
               <div>
                 <label className="block font-semibold text-purple-200 mb-1">Tingkat Kompetisi:</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(['Kabupaten (OSN-K)', 'Provinsi (OSN-P)', 'Nasional (OSN-N)'] as CompetitionLevel[]).map((lvl) => (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                  {(['Sekolah', 'Kabupaten (OSN-K)', 'Provinsi (OSN-P)', 'Nasional (OSN-N)'] as CompetitionLevel[]).map((lvl) => (
                     <button
                       type="button"
                       key={lvl}
                       onClick={() => setLevel(lvl)}
-                      className={`py-2 px-2 rounded-lg text-[11px] font-bold text-center border transition-all cursor-pointer ${
+                      className={`py-1.5 px-2 rounded-lg text-[11px] font-bold text-center border transition-all cursor-pointer truncate ${
                         level === lvl
                           ? 'bg-purple-600 border-purple-400 text-white shadow'
                           : 'bg-[#120924] border-purple-900/60 text-purple-300 hover:border-purple-700'
                       }`}
                     >
-                      {lvl.split(' ')[1] || lvl}
+                      {getCompetitionLevelAbbr(lvl)}
                     </button>
                   ))}
                 </div>
@@ -604,12 +710,12 @@ export const AiQuestionGenerator: React.FC<AiQuestionGeneratorProps> = ({
                 </div>
               </div>
 
-              {/* Mode Penalaran Gemini (Sedang / Chain-of-Thought) */}
+              {/* Mode Penalaran Gemini (Tinggi / High Reasoning Sesuai API Key) */}
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="font-semibold text-purple-200">Engine AI & Mode Penalaran:</label>
-                  <span className="text-[10px] text-amber-300 font-bold bg-amber-950/80 px-2 py-0.5 rounded border border-amber-600/50">
-                    Gemini 3.8 Flash
+                  <span className="text-[10px] text-emerald-300 font-bold bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-600/50">
+                    Gemini AI • Penalaran Tinggi (High)
                   </span>
                 </div>
                 <select
@@ -618,9 +724,9 @@ export const AiQuestionGenerator: React.FC<AiQuestionGeneratorProps> = ({
                   onChange={(e) => setReasoningLevel(e.target.value as 'standar' | 'sedang' | 'tinggi')}
                   className="w-full bg-[#120924] border border-amber-600/60 rounded-xl px-3 py-2 text-white font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none"
                 >
-                  <option value="sedang">🧠 Penalaran Sedang (Gemini Thinking Engine 2048 - Rekomendasi OSN)</option>
+                  <option value="tinggi">🔬 Penalaran Tinggi (Gemini High Reasoning / ThinkingLevel.HIGH — Terintegrasi Sesuai API Key)</option>
+                  <option value="sedang">🧠 Penalaran Sedang (Gemini Balanced Reasoning 2048)</option>
                   <option value="standar">⚡ Penalaran Cepat (Flash Standard Mode)</option>
-                  <option value="tinggi">🔬 Penalaran Tinggi (Deep Analytical Proof 4096)</option>
                 </select>
               </div>
 
@@ -740,17 +846,34 @@ export const AiQuestionGenerator: React.FC<AiQuestionGeneratorProps> = ({
               >
                 {/* Header Tags */}
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                     <span className="font-bold px-2 py-0.5 rounded bg-purple-950 text-purple-200 border border-purple-700/60">
                       Soal #{idx + 1} • {q.subject}
                     </span>
+                    {q.targetClass && (
+                      <span className="font-semibold px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-700/50">
+                        Kelas {q.targetClass}
+                      </span>
+                    )}
+                    {q.difficulty && (
+                      <span className="font-semibold px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-600/50">
+                        {q.difficulty}
+                      </span>
+                    )}
+                    {q.competitionMode && (
+                      <span className="font-semibold px-2 py-0.5 rounded bg-purple-900/60 text-purple-200 border border-purple-700/50">
+                        {getGeneratorModeAbbr(q.competitionMode)}
+                      </span>
+                    )}
                     <span className="font-semibold px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-700/50">
-                      {q.bloomLevel}
+                      {getBloomAbbr(q.bloomLevel)}
                     </span>
                     <span className="font-semibold px-2 py-0.5 rounded bg-pink-950 text-pink-300 border border-pink-700/50">
-                      SOLO: {q.soloLevel}
+                      SOLO: {getSoloAbbr(q.soloLevel)}
                     </span>
-                    <span className="text-[11px] font-medium text-amber-400">{q.level}</span>
+                    <span className="text-[11px] font-medium text-amber-400">
+                      {getCompetitionLevelAbbr(q.level)}
+                    </span>
                   </div>
 
                   <button
@@ -760,6 +883,14 @@ export const AiQuestionGenerator: React.FC<AiQuestionGeneratorProps> = ({
                     <Save className="w-3.5 h-3.5" /> Simpan
                   </button>
                 </div>
+
+                {/* Indikator Kompetensi jika ada */}
+                {q.indicator && (
+                  <div className="p-2 rounded-xl bg-purple-950/60 border border-purple-700/40 text-[11px] text-purple-200 flex items-start gap-1.5">
+                    <span className="font-bold text-indigo-300 shrink-0">Indikator:</span>
+                    <span className="leading-relaxed">{q.indicator}</span>
+                  </div>
+                )}
 
                 {/* Question Body */}
                 <div className="text-sm font-medium text-slate-100 leading-relaxed">
@@ -839,13 +970,63 @@ export const AiQuestionGenerator: React.FC<AiQuestionGeneratorProps> = ({
                   </div>
                 )}
 
+                {/* Konsep atau Rumus Utama */}
+                {q.mainConcept && (
+                  <div className="p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-600/40 text-xs text-emerald-200 space-y-0.5">
+                    <span className="font-bold text-emerald-400 block text-[10px] uppercase">
+                      Konsep atau Rumus Utama:
+                    </span>
+                    <span className="font-mono text-[11px] text-emerald-300/90">{q.mainConcept}</span>
+                  </div>
+                )}
+
+                {/* Kesalahan Umum yang Perlu Dihindari (Miskonsepsi) */}
+                {q.commonMistakes && (
+                  <div className="p-2.5 rounded-xl bg-amber-950/40 border border-amber-600/50 text-xs text-amber-200 space-y-0.5">
+                    <span className="font-bold text-amber-300 block text-[10px] uppercase flex items-center gap-1">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      Kesalahan Umum yang Perlu Dihindari (Miskonsepsi):
+                    </span>
+                    <span className="text-[11px] text-amber-200/90 leading-relaxed block">{q.commonMistakes}</span>
+                  </div>
+                )}
+
+                {/* Metadata Orisinalitas & Variasi Penalaran (Anti-Duplikasi) */}
+                {(q.noveltySummary || q.problemStructure || q.reasoningMethod) && (
+                  <div className="p-2.5 rounded-xl bg-cyan-950/40 border border-cyan-700/40 text-xs text-cyan-200 space-y-1">
+                    <div className="flex items-center justify-between text-[10px] font-bold uppercase text-cyan-300">
+                      <span>Orisinalitas & Variasi Penalaran:</span>
+                      <span className="text-emerald-400 bg-emerald-950/80 px-1.5 py-0.5 rounded border border-emerald-800">
+                        {q.similarityStatus === 'verified_unique' ? '✓ Terverifikasi Unik' : '✓ Non-Duplikat'}
+                      </span>
+                    </div>
+                    {q.noveltySummary && (
+                      <p className="text-[11px] text-cyan-100/90 leading-relaxed font-sans">
+                        {q.noveltySummary}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap items-center gap-2 pt-0.5 text-[10px] text-cyan-300/80 font-mono">
+                      {q.problemStructure && (
+                        <span className="bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-800/60">
+                          Model: {q.problemStructure}
+                        </span>
+                      )}
+                      {q.reasoningMethod && (
+                        <span className="bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-800/60">
+                          Strategi: {q.reasoningMethod}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Scientific Explanation Dropdown */}
-                <div className="pt-3 border-t border-purple-900/40 text-xs space-y-1">
+                <div className="pt-3 border-t border-purple-900/40 text-xs space-y-1.5">
                   <div className="flex items-center gap-1 font-bold text-purple-300">
                     <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Pembahasan & Solusi Ilmiah:</span>
+                    <span>Pembahasan Langkah demi Langkah:</span>
                   </div>
-                  <p className="text-purple-200/80 leading-relaxed bg-[#120924]/40 p-2.5 rounded-lg border border-purple-900/30">
+                  <p className="text-purple-200/80 leading-relaxed bg-[#120924]/40 p-2.5 rounded-lg border border-purple-900/30 whitespace-pre-line">
                     {q.explanation}
                   </p>
                   {q.hint && (
@@ -853,6 +1034,25 @@ export const AiQuestionGenerator: React.FC<AiQuestionGeneratorProps> = ({
                       💡 <strong>Trik Cepat / Hint:</strong> {q.hint}
                     </div>
                   )}
+
+                  {/* Metadata Ringkas (Waktu, Skor, Referensi) */}
+                  <div className="flex flex-wrap items-center gap-2 pt-1 text-[10px] text-purple-300/70">
+                    {q.estimatedMinutes && (
+                      <span className="px-2 py-0.5 rounded bg-purple-950 border border-purple-800/50">
+                        ⏱️ Estimasi: {q.estimatedMinutes} Menit
+                      </span>
+                    )}
+                    {q.maxScore && (
+                      <span className="px-2 py-0.5 rounded bg-purple-950 border border-purple-800/50 text-amber-300">
+                        ⭐ Skor Maks: {q.maxScore}
+                      </span>
+                    )}
+                    {q.referenceSource && (
+                      <span className="px-2 py-0.5 rounded bg-purple-950 border border-purple-800/50 truncate max-w-full">
+                        📚 Referensi: {q.referenceSource}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -971,18 +1171,33 @@ export const AiQuestionGenerator: React.FC<AiQuestionGeneratorProps> = ({
                 className="bg-[#180e2f]/85 border border-purple-800/40 hover:border-purple-600/50 rounded-2xl p-5 space-y-3 transition-all"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                     <span className="font-bold px-2 py-0.5 rounded bg-purple-950 text-purple-200 border border-purple-700/60">
                       {q.id} • {q.subject}
                     </span>
+                    {q.targetClass && (
+                      <span className="font-semibold px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-700/50">
+                        Kelas {q.targetClass}
+                      </span>
+                    )}
+                    {q.difficulty && (
+                      <span className="font-semibold px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-600/50">
+                        {q.difficulty}
+                      </span>
+                    )}
+                    {q.competitionMode && (
+                      <span className="font-semibold px-2 py-0.5 rounded bg-purple-900/60 text-purple-200 border border-purple-700/50">
+                        {getGeneratorModeAbbr(q.competitionMode)}
+                      </span>
+                    )}
                     <span className="font-semibold px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-700/50">
-                      {q.bloomLevel}
+                      {getBloomAbbr(q.bloomLevel)}
                     </span>
                     <span className="font-semibold px-2 py-0.5 rounded bg-pink-950 text-pink-300 border border-pink-700/50">
-                      SOLO: {q.soloLevel}
+                      SOLO: {getSoloAbbr(q.soloLevel)}
                     </span>
                     <span className="text-[11px] font-medium text-amber-400">
-                      Topik: {q.topic}
+                      {getCompetitionLevelAbbr(q.level)} • {q.topic}
                     </span>
                   </div>
 
@@ -996,6 +1211,14 @@ export const AiQuestionGenerator: React.FC<AiQuestionGeneratorProps> = ({
                     </button>
                   )}
                 </div>
+
+                {/* Indikator Kompetensi jika ada */}
+                {q.indicator && (
+                  <div className="p-2 rounded-xl bg-purple-950/60 border border-purple-700/40 text-[11px] text-purple-200 flex items-start gap-1.5">
+                    <span className="font-bold text-indigo-300 shrink-0">Indikator:</span>
+                    <span className="leading-relaxed">{q.indicator}</span>
+                  </div>
+                )}
 
                 <div className="text-sm font-medium text-white leading-relaxed">
                   {q.questionText}
@@ -1033,27 +1256,74 @@ export const AiQuestionGenerator: React.FC<AiQuestionGeneratorProps> = ({
                 )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 text-xs">
-                  {q.options.map((opt, oIdx) => {
-                    const isCorrect = oIdx === q.correctAnswerIndex;
-                    return (
-                      <div
-                        key={oIdx}
-                        className={`p-2 rounded-xl border truncate ${
-                          isCorrect
-                            ? 'bg-emerald-950/70 border-emerald-500/60 text-emerald-200 font-bold'
-                            : 'bg-[#120924]/60 border-purple-900/40 text-purple-200/80'
-                        }`}
-                        title={opt}
-                      >
-                        {opt}
-                      </div>
-                    );
-                  })}
+                  {q.options &&
+                    q.options.map((opt, oIdx) => {
+                      const isCorrect = oIdx === q.correctAnswerIndex;
+                      return (
+                        <div
+                          key={oIdx}
+                          className={`p-2 rounded-xl border truncate ${
+                            isCorrect
+                              ? 'bg-emerald-950/70 border-emerald-500/60 text-emerald-200 font-bold'
+                              : 'bg-[#120924]/60 border-purple-900/40 text-purple-200/80'
+                          }`}
+                          title={opt}
+                        >
+                          {opt}
+                        </div>
+                      );
+                    })}
                 </div>
 
-                <div className="pt-2 text-xs text-purple-300/80 bg-[#120924]/40 p-2.5 rounded-lg border border-purple-900/30">
-                  <span className="font-bold text-amber-400 mr-1">Pembahasan:</span>
-                  {q.explanation}
+                {/* Konsep atau Rumus Utama */}
+                {q.mainConcept && (
+                  <div className="p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-600/40 text-xs text-emerald-200 space-y-0.5">
+                    <span className="font-bold text-emerald-400 block text-[10px] uppercase">
+                      Konsep atau Rumus Utama:
+                    </span>
+                    <span className="font-mono text-[11px] text-emerald-300/90">{q.mainConcept}</span>
+                  </div>
+                )}
+
+                {/* Kesalahan Umum yang Perlu Dihindari (Miskonsepsi) */}
+                {q.commonMistakes && (
+                  <div className="p-2.5 rounded-xl bg-amber-950/40 border border-amber-600/50 text-xs text-amber-200 space-y-0.5">
+                    <span className="font-bold text-amber-300 block text-[10px] uppercase flex items-center gap-1">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      Kesalahan Umum yang Perlu Dihindari:
+                    </span>
+                    <span className="text-[11px] text-amber-200/90 leading-relaxed block">{q.commonMistakes}</span>
+                  </div>
+                )}
+
+                <div className="pt-2 text-xs text-purple-300/80 bg-[#120924]/40 p-2.5 rounded-lg border border-purple-900/30 space-y-1">
+                  <div>
+                    <span className="font-bold text-amber-400 mr-1">Pembahasan:</span>
+                    <span className="whitespace-pre-line leading-relaxed">{q.explanation}</span>
+                  </div>
+                  {q.hint && (
+                    <div className="text-[11px] text-amber-300 font-medium">
+                      💡 <strong>Hint:</strong> {q.hint}
+                    </div>
+                  )}
+                  {/* Meta Bar */}
+                  <div className="flex flex-wrap items-center gap-2 pt-1 text-[10px] text-purple-300/70">
+                    {q.estimatedMinutes && (
+                      <span className="px-1.5 py-0.5 rounded bg-purple-950 border border-purple-800/50">
+                        ⏱️ {q.estimatedMinutes} Menit
+                      </span>
+                    )}
+                    {q.maxScore && (
+                      <span className="px-1.5 py-0.5 rounded bg-purple-950 border border-purple-800/50 text-amber-300">
+                        ⭐ Skor: {q.maxScore}
+                      </span>
+                    )}
+                    {q.referenceSource && (
+                      <span className="px-1.5 py-0.5 rounded bg-purple-950 border border-purple-800/50 truncate max-w-full">
+                        📚 {q.referenceSource}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}

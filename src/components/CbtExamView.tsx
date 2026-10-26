@@ -23,13 +23,20 @@ import {
   Users,
   History,
   TrendingUp,
+  Search,
+  ChevronDown,
+  ChevronUp,
+  CheckSquare,
+  Square,
+  Filter,
+  Layers,
 } from 'lucide-react';
-import { ExamPacket, UserProfile, ExamResult, Question, OsnSubject, CompetitionLevel } from '../types';
+import { ExamPacket, UserProfile, ExamResult, Question, OsnSubject, CompetitionLevel, BloomTaxonomy, SoloTaxonomy } from '../types';
 import { printCbtResultPdf } from '../services/pdfPrintService';
 import { QuestionAnalysisView } from './QuestionAnalysisView';
 import { CbtExamRecapModal } from './CbtExamRecapModal';
 import { shuffleQuestionsForAccount, shuffleQuestionsArray } from '../utils/shuffleUtils';
-import { explainQuestionRemediation } from '../services/aiQuestionService';
+import { explainQuestionRemediation, generateOsnQuestions } from '../services/aiQuestionService';
 import { getCompetitionLevelAbbr, getBloomAbbr, getSoloAbbr } from '../utils/abbreviations';
 
 interface CbtExamViewProps {
@@ -40,6 +47,8 @@ interface CbtExamViewProps {
   onClearActiveExamFromDashboard?: () => void;
   onSendToGoogleSheets?: (result: ExamResult) => Promise<boolean>;
   onAddExamPacket?: (newExam: ExamPacket) => void;
+  onAddQuestion?: (newQuestion: Question) => void;
+  onAddQuestions?: (newQuestions: Question[]) => void;
   questionBank?: Question[];
   setActiveTab?: (tab: string) => void;
   examResults?: ExamResult[];
@@ -53,6 +62,8 @@ export const CbtExamView: React.FC<CbtExamViewProps> = ({
   onClearActiveExamFromDashboard,
   onSendToGoogleSheets,
   onAddExamPacket,
+  onAddQuestion,
+  onAddQuestions,
   questionBank = [],
   setActiveTab,
   examResults = [],
@@ -103,6 +114,61 @@ export const CbtExamView: React.FC<CbtExamViewProps> = ({
   const [cbtNewQuestions, setCbtNewQuestions] = useState<Question[]>([]);
   const [cbtShuffleOnAssemble, setCbtShuffleOnAssemble] = useState<boolean>(true);
   const [cbtPerAccountShuffle, setCbtPerAccountShuffle] = useState<boolean>(true);
+
+  // CBT Bank Soal Selection & Search Filter state
+  const [bankSearch, setBankSearch] = useState('');
+  const [bankBloomFilter, setBankBloomFilter] = useState('All');
+  const [expandedQuestionPreviewId, setExpandedQuestionPreviewId] = useState<string | null>(null);
+
+  // Quick AI Question Generation directly inside CBT Exam Creator
+  const [cbtAiCount, setCbtAiCount] = useState<number>(5);
+  const [cbtAiBloom, setCbtAiBloom] = useState<BloomTaxonomy>('C4 (Menganalisis)');
+  const [cbtAiSolo, setCbtAiSolo] = useState<SoloTaxonomy>('Relational');
+  const [isGeneratingAiForCbt, setIsGeneratingAiForCbt] = useState<boolean>(false);
+  const [cbtAiNotice, setCbtAiNotice] = useState<string | null>(null);
+  const [showAiGenInCbt, setShowAiGenInCbt] = useState<boolean>(true);
+
+  const handleGenerateAiForCbt = async () => {
+    setIsGeneratingAiForCbt(true);
+    setCbtAiNotice(null);
+    try {
+      const res = await generateOsnQuestions({
+        subject: cbtSubject,
+        level: cbtLevel,
+        bloomTaxonomy: cbtAiBloom,
+        soloTaxonomy: cbtAiSolo,
+        count: cbtAiCount,
+        topic: `${cbtSubject} OSN`,
+        questionType: 'pilihan_ganda',
+        authorName: currentUser.name || 'AI Pembina SMAN 1 Pardasuka',
+        existingQuestions: questionBank,
+        targetClass: 'XI',
+        generatorMode: 'Mode F (Simulasi Olimpiade)',
+        difficulty: 'Campuran',
+        schoolName: 'SMAN 1 Pardasuka',
+      });
+
+      if (res.success && res.questions && res.questions.length > 0) {
+        if (onAddQuestions) {
+          onAddQuestions(res.questions);
+        } else if (onAddQuestion) {
+          res.questions.forEach((q) => onAddQuestion(q));
+        }
+        const newIds = res.questions.map((q) => q.id);
+        setSelectedBankQuestionIds((prev) => Array.from(new Set([...prev, ...newIds])));
+        setCbtAiNotice(
+          `✓ Sukses merangkai ${res.questions.length} butir soal ${cbtSubject}! Soal otomatis ditambahkan ke Bank & dicentang untuk Paket CBT ini.`
+        );
+      } else {
+        setCbtAiNotice('Gagal men-generate soal AI. Silakan coba kembali.');
+      }
+    } catch (err) {
+      console.error('Error generating AI for CBT:', err);
+      setCbtAiNotice('Terjadi kendala saat merangkai butir soal.');
+    } finally {
+      setIsGeneratingAiForCbt(false);
+    }
+  };
 
   useEffect(() => {
     if (currentUser.role !== 'admin' && currentUser.subject) {
@@ -1935,48 +2001,380 @@ export const CbtExamView: React.FC<CbtExamViewProps> = ({
                   </div>
                 )}
 
-                {/* Question Bank Checklist */}
-                <div>
-                  <span className="block font-semibold text-purple-200 mb-1.5">
-                    Pilih Butir Soal dari Bank Soal ({cbtSubject}):
-                  </span>
-                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                    {questionBank
-                      .filter((q) => q.subject === cbtSubject)
-                      .map((q) => {
-                        const isChecked = selectedBankQuestionIds.includes(q.id);
-                        return (
-                          <div
-                            key={q.id}
-                            onClick={() => {
-                              setSelectedBankQuestionIds((prev) =>
-                                isChecked ? prev.filter((id) => id !== q.id) : [...prev, q.id]
-                              );
-                            }}
-                            className={`p-2.5 rounded-xl border flex items-start gap-2.5 cursor-pointer transition-colors ${
-                              isChecked
-                                ? 'bg-purple-950 border-purple-500 text-white'
-                                : 'bg-[#180e2f] border-purple-900/60 text-purple-300 hover:border-purple-700'
-                            }`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              readOnly
-                              className="mt-0.5 accent-purple-500"
-                            />
-                            <div className="space-y-0.5">
-                              <div className="flex items-center gap-2">
-                                <span className="font-bold text-[10px] text-amber-300">{q.id}</span>
-                                <span className="text-[10px] text-indigo-300">{q.bloomLevel}</span>
+                {/* Question Bank Checklist & Quick AI Generator */}
+                {(() => {
+                  const subjectQuestions = questionBank.filter((q) => q.subject === cbtSubject);
+                  const filteredBankQuestions = subjectQuestions.filter((q) => {
+                    const matchSearch =
+                      !bankSearch ||
+                      q.questionText.toLowerCase().includes(bankSearch.toLowerCase()) ||
+                      q.id.toLowerCase().includes(bankSearch.toLowerCase()) ||
+                      (q.topic && q.topic.toLowerCase().includes(bankSearch.toLowerCase()));
+                    const matchBloom =
+                      bankBloomFilter === 'All' || q.bloomLevel.startsWith(bankBloomFilter);
+                    return matchSearch && matchBloom;
+                  });
+                  const selectedInSubjectCount = subjectQuestions.filter((q) =>
+                    selectedBankQuestionIds.includes(q.id)
+                  ).length;
+
+                  return (
+                    <div className="space-y-3">
+                      {/* Section Header with Stats & AI Gen Toggle */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-purple-900/40 pb-2">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-white text-xs sm:text-sm">
+                              Pilih Butir Soal dari Bank Soal ({cbtSubject})
+                            </span>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-900/60 text-purple-200 border border-purple-700/50">
+                              Terpilih: {selectedInSubjectCount} dari {subjectQuestions.length} Soal
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-purple-300/70">
+                            Pilih butir soal yang telah diverifikasi guru atau generate soal baru otomatis dengan AI.
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setShowAiGenInCbt(!showAiGenInCbt)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-purple-600/40 to-amber-600/40 hover:from-purple-600/60 hover:to-amber-600/60 border border-amber-500/50 text-amber-200 text-xs font-bold transition-all shadow-sm cursor-pointer self-start sm:self-auto"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                          <span>{showAiGenInCbt ? 'Tutup Generator AI' : '✨ Generate Soal AI Sekarang'}</span>
+                        </button>
+                      </div>
+
+                      {/* Inline Quick AI Generator Drawer */}
+                      {showAiGenInCbt && (
+                        <div className="p-3.5 rounded-2xl bg-gradient-to-br from-[#1b0d38] via-[#150a2e] to-[#120726] border border-amber-500/40 shadow-lg space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="p-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                                <Sparkles className="w-4 h-4 text-amber-400" />
+                              </span>
+                              <div>
+                                <h4 className="text-xs font-bold text-white">
+                                  Generator Butir Soal AI Otomatis (OSN {cbtSubject})
+                                </h4>
+                                <p className="text-[10px] text-amber-200/70">
+                                  Soal langsung dibuat sesuai taksonomi kognitif dan otomatis dicentang ke paket CBT ini.
+                                </p>
                               </div>
-                              <p className="text-[11px] line-clamp-2 leading-relaxed">{q.questionText}</p>
+                            </div>
+                            <span className="hidden sm:inline-block px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-950/80 text-amber-300 border border-amber-600/50">
+                              Gemini 3.8 Flash
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                            <div>
+                              <label className="block text-[11px] font-semibold text-purple-200 mb-1">
+                                Jumlah Butir Soal:
+                              </label>
+                              <select
+                                value={cbtAiCount}
+                                onChange={(e) => setCbtAiCount(Number(e.target.value))}
+                                className="w-full bg-[#100624] border border-purple-700/60 rounded-xl px-2.5 py-1.5 text-white font-bold text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                              >
+                                <option value={2}>2 Butir Soal</option>
+                                <option value={3}>3 Butir Soal</option>
+                                <option value={5}>5 Butir Soal (Standar)</option>
+                                <option value={8}>8 Butir Soal</option>
+                                <option value={10}>10 Butir Soal (Paket Lengkap)</option>
+                                <option value={15}>15 Butir Soal</option>
+                                <option value={20}>20 Butir Soal (Akbar)</option>
+                              </select>
+                            </div>
+
+                            <div>
+                              <label className="block text-[11px] font-semibold text-purple-200 mb-1">
+                                Taksonomi Bloom:
+                              </label>
+                              <select
+                                value={cbtAiBloom}
+                                onChange={(e) => setCbtAiBloom(e.target.value as BloomTaxonomy)}
+                                className="w-full bg-[#100624] border border-purple-700/60 rounded-xl px-2.5 py-1.5 text-white text-xs focus:ring-1 focus:ring-purple-500 focus:outline-none"
+                              >
+                                <option value="C3 (Mengaplikasikan)">C3 (Mengaplikasikan)</option>
+                                <option value="C4 (Menganalisis)">C4 (Menganalisis - Rekomendasi)</option>
+                                <option value="C5 (Mengevaluasi)">C5 (Mengevaluasi - HOTS)</option>
+                                <option value="C6 (Mencipta)">C6 (Mencipta - HOTS)</option>
+                              </select>
+                            </div>
+
+                            <div className="flex items-end">
+                              <button
+                                type="button"
+                                disabled={isGeneratingAiForCbt}
+                                onClick={handleGenerateAiForCbt}
+                                className="w-full py-1.5 px-3 rounded-xl bg-gradient-to-r from-amber-600 via-purple-600 to-emerald-600 hover:from-amber-500 hover:to-emerald-500 text-white font-bold text-xs shadow flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 transition-all"
+                              >
+                                {isGeneratingAiForCbt ? (
+                                  <>
+                                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                    <span>Menyusun {cbtAiCount} Soal...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                                    <span>Generate Soal AI Sekarang</span>
+                                  </>
+                                )}
+                              </button>
                             </div>
                           </div>
-                        );
-                      })}
-                  </div>
-                </div>
+
+                          {cbtAiNotice && (
+                            <div className="bg-emerald-950/80 border border-emerald-500/50 rounded-xl p-2 text-[11px] text-emerald-200 flex items-center gap-1.5">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                              <span>{cbtAiNotice}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Toolbar: Search, Bloom Filter & Select All / Deselect All */}
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 bg-[#120826] p-2 rounded-xl border border-purple-800/40 text-xs">
+                        {/* Search & Bloom filter */}
+                        <div className="flex items-center gap-2 flex-1">
+                          <div className="relative flex-1">
+                            <Search className="w-3.5 h-3.5 text-purple-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                            <input
+                              type="text"
+                              value={bankSearch}
+                              onChange={(e) => setBankSearch(e.target.value)}
+                              placeholder={`Cari nomor, materi, atau teks soal ${cbtSubject}...`}
+                              className="w-full bg-[#180e2f] border border-purple-700/50 rounded-lg pl-8 pr-2 py-1 text-white text-xs placeholder:text-purple-400/50 focus:outline-none focus:border-purple-400"
+                            />
+                            {bankSearch && (
+                              <button
+                                type="button"
+                                onClick={() => setBankSearch('')}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-purple-400 hover:text-white"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="w-36 shrink-0">
+                            <select
+                              aria-label="Filter Taksonomi Bloom"
+                              value={bankBloomFilter}
+                              onChange={(e) => setBankBloomFilter(e.target.value)}
+                              className="w-full bg-[#180e2f] border border-purple-700/50 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-purple-400"
+                            >
+                              <option value="All">Semua Level</option>
+                              <option value="C1">C1 Ingat</option>
+                              <option value="C2">C2 Paham</option>
+                              <option value="C3">C3 Terapkan</option>
+                              <option value="C4">C4 Analisis</option>
+                              <option value="C5">C5 Evaluasi</option>
+                              <option value="C6">C6 HOTS</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Bulk Action Buttons */}
+                        <div className="flex items-center gap-1.5 self-end sm:self-auto shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const idsToAdd = filteredBankQuestions.map((q) => q.id);
+                              setSelectedBankQuestionIds((prev) =>
+                                Array.from(new Set([...prev, ...idsToAdd]))
+                              );
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-purple-700/40 hover:bg-purple-600 border border-purple-500/50 text-white text-[11px] font-semibold transition-colors cursor-pointer"
+                          >
+                            Pilih Semua ({filteredBankQuestions.length})
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const idsToRemove = new Set(filteredBankQuestions.map((q) => q.id));
+                              setSelectedBankQuestionIds((prev) =>
+                                prev.filter((id) => !idsToRemove.has(id))
+                              );
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-purple-950 hover:bg-purple-900 border border-purple-800 text-purple-300 hover:text-white text-[11px] font-semibold transition-colors cursor-pointer"
+                          >
+                            Kosongkan Pilihan
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Question Cards List */}
+                      <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                        {filteredBankQuestions.length === 0 ? (
+                          <div className="text-center p-6 rounded-xl border border-dashed border-purple-800/50 bg-[#140a2a]/60 space-y-2">
+                            <p className="text-xs text-purple-300">
+                              Tidak ada butir soal {cbtSubject} yang cocok dengan pencarian atau filter.
+                            </p>
+                            <button
+                              type="button"
+                              onClick={handleGenerateAiForCbt}
+                              className="px-3 py-1.5 rounded-lg bg-amber-600/30 hover:bg-amber-600/50 border border-amber-500/50 text-amber-200 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                              Generate Soal AI Sekarang
+                            </button>
+                          </div>
+                        ) : (
+                          filteredBankQuestions.map((q) => {
+                            const isChecked = selectedBankQuestionIds.includes(q.id);
+                            const isExpanded = expandedQuestionPreviewId === q.id;
+
+                            return (
+                              <div
+                                key={q.id}
+                                className={`rounded-xl border transition-all ${
+                                  isChecked
+                                    ? 'bg-purple-950/70 border-purple-500/80 shadow-md ring-1 ring-purple-500/40'
+                                    : 'bg-[#150a2e]/90 border-purple-900/60 hover:border-purple-700 text-purple-200'
+                                }`}
+                              >
+                                {/* Card Header with Checkbox and Info Badges */}
+                                <div
+                                  onClick={() => {
+                                    setSelectedBankQuestionIds((prev) =>
+                                      isChecked
+                                        ? prev.filter((id) => id !== q.id)
+                                        : [...prev, q.id]
+                                    );
+                                  }}
+                                  className="p-3 flex items-start gap-3 cursor-pointer select-none"
+                                >
+                                  {/* Custom styled Checkbox */}
+                                  <div className="mt-0.5 shrink-0">
+                                    {isChecked ? (
+                                      <CheckSquare className="w-4 h-4 text-emerald-400" />
+                                    ) : (
+                                      <Square className="w-4 h-4 text-purple-400/70" />
+                                    )}
+                                  </div>
+
+                                  <div className="space-y-1.5 flex-1 min-w-0">
+                                    {/* Badges Row */}
+                                    <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                                      <span className="font-mono font-bold px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-500/50">
+                                        {q.id}
+                                      </span>
+                                      <span className="font-bold px-1.5 py-0.5 rounded bg-indigo-950/80 text-indigo-300 border border-indigo-500/50">
+                                        {getBloomAbbr(q.bloomLevel)}
+                                      </span>
+                                      {q.soloLevel && (
+                                        <span className="font-semibold px-1.5 py-0.5 rounded bg-pink-950/80 text-pink-300 border border-pink-500/40">
+                                          SOLO: {getSoloAbbr(q.soloLevel)}
+                                        </span>
+                                      )}
+                                      <span className="px-1.5 py-0.5 rounded bg-purple-900/50 text-purple-200 border border-purple-700/40 truncate max-w-[150px] sm:max-w-[220px]">
+                                        {q.topic}
+                                      </span>
+                                      {q.difficulty && (
+                                        <span className="font-semibold px-1.5 py-0.5 rounded bg-emerald-950/70 text-emerald-300 border border-emerald-500/40">
+                                          {q.difficulty}
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    {/* Question Text */}
+                                    <p
+                                      className={`text-xs text-slate-100 leading-relaxed ${
+                                        isExpanded ? '' : 'line-clamp-2'
+                                      }`}
+                                    >
+                                      {q.questionText}
+                                    </p>
+
+                                    {/* Formula / Scientific Context snippet */}
+                                    {q.formulaOrContext && (
+                                      <div className="text-[11px] font-mono text-purple-300/80 bg-purple-950/50 px-2 py-0.5 rounded border border-purple-800/40 truncate">
+                                        {q.formulaOrContext}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Preview Toggle Button & Expanded Content */}
+                                <div className="px-3 pb-2.5 pt-0 border-t border-purple-900/30">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setExpandedQuestionPreviewId(isExpanded ? null : q.id);
+                                    }}
+                                    className="flex items-center gap-1 text-[11px] text-purple-300/80 hover:text-white font-medium cursor-pointer transition-colors pt-1"
+                                  >
+                                    {isExpanded ? (
+                                      <>
+                                        <ChevronUp className="w-3.5 h-3.5 text-amber-400" />
+                                        <span>Sembunyikan Opsi & Pembahasan</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <ChevronDown className="w-3.5 h-3.5 text-purple-400" />
+                                        <span>Lihat 5 Opsi (A-E) & Pembahasan</span>
+                                      </>
+                                    )}
+                                  </button>
+
+                                  {/* Expanded View */}
+                                  {isExpanded && (
+                                    <div className="mt-2 pt-2 border-t border-purple-800/40 space-y-2 text-xs">
+                                      {/* Options A-E */}
+                                      {Array.isArray(q.options) && q.options.length > 0 && (
+                                        <div className="space-y-1">
+                                          <span className="text-[10px] font-bold text-purple-300 block">
+                                            Pilihan Jawaban (Kunci Jawaban Ditandai Hijau):
+                                          </span>
+                                          <div className="grid grid-cols-1 gap-1">
+                                            {q.options.map((opt, oIdx) => {
+                                              const isCorrect = oIdx === q.correctAnswerIndex;
+                                              return (
+                                                <div
+                                                  key={oIdx}
+                                                  className={`px-2.5 py-1 rounded-lg text-xs flex items-center justify-between gap-2 ${
+                                                    isCorrect
+                                                      ? 'bg-emerald-950/80 border border-emerald-500/80 text-emerald-200 font-semibold'
+                                                      : 'bg-[#100624] border border-purple-900/40 text-purple-200'
+                                                  }`}
+                                                >
+                                                  <span>{opt}</span>
+                                                  {isCorrect && (
+                                                    <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold shrink-0">
+                                                      <Check className="w-3 h-3" /> Kunci
+                                                    </span>
+                                                  )}
+                                                </div>
+                                              );
+                                            })}
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {/* Explanation */}
+                                      {q.explanation && (
+                                        <div className="p-2 rounded-lg bg-[#110724] border border-purple-800/40 text-[11px] text-purple-200 leading-relaxed">
+                                          <span className="font-bold text-amber-300 block mb-0.5">
+                                            Pembahasan Ilmiah:
+                                          </span>
+                                          {q.explanation}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2">
