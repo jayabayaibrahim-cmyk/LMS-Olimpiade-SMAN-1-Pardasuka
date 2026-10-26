@@ -151,8 +151,6 @@ export const BimbinganScheduleView: React.FC<BimbinganScheduleViewProps> = ({
         count: genCount,
         topic: schedule.topic,
         questionType: genQuestionType,
-        reasoningLevel: 'sedang',
-        purpose: 'bimbingan',
         customPrompt: `Soal khusus bimbingan dan pembahasan intensif kelas bimbingan OSN SMAN 1 Pardasuka (Bukan untuk CBT). Format soal: ${genQuestionType}. ${
           genQuestionType === 'bergambar' ? 'Wajib sertakan diagram skema visual ilmiah (diagramSvg).' : ''
         } Catatan bimbingan: ${schedule.notes || ''}`,

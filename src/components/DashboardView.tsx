@@ -311,9 +311,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       <span className="flex items-center gap-1">
                         <Clock className="w-3.5 h-3.5" /> {exam.durationMinutes} Menit
                       </span>
-                      <span>
-                        {Array.isArray(exam.questions) ? exam.questions.length : 0} Butir Soal
-                      </span>
+                      <span>{exam.questions.length} Butir Soal</span>
                       <span className="text-emerald-400 font-semibold">
                         {exam.penaltyMode ? 'Skor OSN (+4, -1, 0)' : 'Standar 100'}
                       </span>

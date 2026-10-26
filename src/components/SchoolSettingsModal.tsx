@@ -9,11 +9,6 @@ import {
   Award,
   Sparkles,
   ShieldCheck,
-  Key,
-  Cpu,
-  Zap,
-  Eye,
-  EyeOff,
 } from 'lucide-react';
 import {
   getSchoolConfig,
@@ -22,15 +17,6 @@ import {
   SchoolConfig,
   DEFAULT_SCHOOL_CONFIG,
 } from '../services/schoolConfigService';
-import {
-  getSavedGeminiApiKey,
-  saveGeminiApiKey,
-  getSavedGeminiEngine,
-  saveGeminiEngine,
-  getSavedReasoningLevel,
-  saveReasoningLevel,
-  ReasoningLevel,
-} from '../services/aiQuestionService';
 
 interface SchoolSettingsModalProps {
   isOpen: boolean;
@@ -65,12 +51,6 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
   const [logoPreview, setLogoPreview] = useState<string | null>(config.logoUrl);
   const [saveSuccessNotice, setSaveSuccessNotice] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Gemini AI Engine, Reasoning & API Key states
-  const [geminiApiKey, setGeminiApiKey] = useState<string>(() => getSavedGeminiApiKey());
-  const [defaultEngine, setDefaultEngine] = useState<string>(() => getSavedGeminiEngine());
-  const [defaultReasoning, setDefaultReasoning] = useState<ReasoningLevel>(() => getSavedReasoningLevel());
-  const [showKey, setShowKey] = useState<boolean>(false);
 
   if (!isOpen) return null;
 
@@ -107,11 +87,8 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
 
   const handleSave = () => {
     const saved = saveSchoolConfig(config);
-    saveGeminiApiKey(geminiApiKey);
-    saveGeminiEngine(defaultEngine);
-    saveReasoningLevel(defaultReasoning);
     if (onConfigSaved) onConfigSaved(saved);
-    setSaveSuccessNotice('Identitas Sekolah & Pengaturan Engine Gemini Berhasil Disimpan!');
+    setSaveSuccessNotice('Identitas dan Logo Sekolah Berhasil Disimpan!');
     setTimeout(() => {
       setSaveSuccessNotice(null);
       onClose();
@@ -334,122 +311,6 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
                 className="w-full bg-[#190d33] border border-purple-800 rounded-lg px-3 py-1.5 text-white font-medium"
               />
             </div>
-          </div>
-        </div>
-
-        {/* Section 3: Konfigurasi Default AI Gemini (Engine & API Key) */}
-        <div className="bg-[#120924] p-4 rounded-xl border border-purple-900/70 space-y-3">
-          <div className="flex items-center justify-between">
-            <label className="block text-xs font-bold text-purple-200 flex items-center gap-1.5">
-              <Cpu className="w-3.5 h-3.5 text-cyan-400" />
-              <span>3. Konfigurasi Bawaan Engine AI Gemini & API Key:</span>
-            </label>
-            <span
-              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                defaultEngine === 'gemini-4-argon'
-                  ? 'bg-cyan-950 text-cyan-300 border-cyan-500/60'
-                  : 'bg-purple-950 text-purple-300 border-purple-700/60'
-              }`}
-            >
-              {defaultEngine === 'gemini-4-argon' ? 'Gemini 4 Argon' : 'Gemini 3.8 Flash'}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-            {/* Engine Default */}
-            <div>
-              <span className="block text-purple-300 font-semibold mb-1">Engine Default:</span>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setDefaultEngine('gemini-3.8-flash')}
-                  className={`py-2 px-2 rounded-lg text-center font-bold border transition-all cursor-pointer ${
-                    defaultEngine === 'gemini-3.8-flash'
-                      ? 'bg-purple-600 border-purple-400 text-white shadow'
-                      : 'bg-[#190d33] border-purple-800 text-purple-300 hover:border-purple-600'
-                  }`}
-                >
-                  Gemini 3.8 Flash
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDefaultEngine('gemini-4-argon')}
-                  className={`py-2 px-2 rounded-lg text-center font-bold border transition-all cursor-pointer ${
-                    defaultEngine === 'gemini-4-argon'
-                      ? 'bg-gradient-to-r from-cyan-600 to-purple-600 border-cyan-300 text-white shadow'
-                      : 'bg-[#190d33] border-purple-800 text-purple-300 hover:border-cyan-600'
-                  }`}
-                >
-                  Gemini 4 Argon
-                </button>
-              </div>
-            </div>
-
-            {/* Tingkat Penalaran Default */}
-            <div>
-              <span className="block text-purple-300 font-semibold mb-1 flex items-center gap-1">
-                <Zap className="w-3 h-3 text-amber-400" />
-                <span>Penalaran Bawaan (Reasoning):</span>
-              </span>
-              <div className="grid grid-cols-3 gap-1.5">
-                {(['rendah', 'sedang', 'tinggi'] as ReasoningLevel[]).map((r) => (
-                  <button
-                    type="button"
-                    key={r}
-                    onClick={() => setDefaultReasoning(r)}
-                    className={`py-2 px-1 rounded-lg text-[11px] font-bold text-center border capitalize transition-all cursor-pointer ${
-                      defaultReasoning === r
-                        ? 'bg-gradient-to-r from-amber-600 to-purple-600 border-amber-400 text-white shadow'
-                        : 'bg-[#190d33] border-purple-800 text-purple-300 hover:border-purple-600'
-                    }`}
-                  >
-                    {r}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* API Key Input */}
-          <div className="pt-2 border-t border-purple-900/50 space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-purple-300 font-semibold flex items-center gap-1">
-                <Key className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Gemini API Key Kustom (Opsional):</span>
-              </span>
-              <span
-                className={`text-[10px] font-bold px-1.5 py-0.2 rounded border ${
-                  geminiApiKey
-                    ? 'bg-emerald-950 text-emerald-300 border-emerald-700/60'
-                    : 'bg-purple-950 text-purple-300 border-purple-800/60'
-                }`}
-              >
-                {geminiApiKey ? 'Kunci Kustom Aktif' : 'Default Server'}
-              </span>
-            </div>
-
-            <div className="relative">
-              <input
-                type={showKey ? 'text' : 'password'}
-                value={geminiApiKey}
-                onChange={(e) => setGeminiApiKey(e.target.value)}
-                placeholder="Kosongkan untuk memakai kunci server (process.env.GEMINI_API_KEY)..."
-                className="w-full bg-[#190d33] border border-purple-800 rounded-lg pl-3 pr-14 py-2 text-white font-mono text-xs focus:ring-1 focus:ring-purple-400 focus:outline-none"
-              />
-              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => setShowKey(!showKey)}
-                  className="p-1 text-purple-400 hover:text-white transition-colors cursor-pointer"
-                  title={showKey ? 'Sembunyikan' : 'Tampilkan'}
-                >
-                  {showKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                </button>
-              </div>
-            </div>
-            <p className="text-[10px] text-purple-400/80">
-              Kunci ini akan digunakan saat menyusun soal dengan Gemini 4 Argon dan Gemini 3.8 Flash.
-            </p>
           </div>
         </div>
 
