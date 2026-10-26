@@ -288,39 +288,42 @@ export const CbtExamRecapModal: React.FC<CbtExamRecapModalProps> = ({
         {/* View Selection Tabs & Search / Filter Bar */}
         <div className="px-6 py-3 border-b border-purple-900/40 bg-[#160b2a] flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
           {/* Subtabs */}
-          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-[#100720] border border-purple-900/60 self-start">
+          <div className="flex items-center gap-1 sm:gap-1.5 p-1 rounded-xl bg-[#100720] border border-purple-900/60 self-start overflow-x-auto max-w-full">
             <button
               onClick={() => setActiveTab('log')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 sm:gap-1.5 cursor-pointer whitespace-nowrap ${
                 activeTab === 'log'
                   ? 'bg-purple-600 text-white shadow-md'
                   : 'text-purple-300 hover:text-white'
               }`}
             >
               <History className="w-3.5 h-3.5" />
-              <span>Log Pengerjaan ({filteredResults.length})</span>
+              <span className="sm:hidden">Log ({filteredResults.length})</span>
+              <span className="hidden sm:inline">Log Pengerjaan ({filteredResults.length})</span>
             </button>
             <button
               onClick={() => setActiveTab('perSiswa')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 sm:gap-1.5 cursor-pointer whitespace-nowrap ${
                 activeTab === 'perSiswa'
                   ? 'bg-purple-600 text-white shadow-md'
                   : 'text-purple-300 hover:text-white'
               }`}
             >
               <Users className="w-3.5 h-3.5" />
-              <span>Rekapan per Siswa ({studentRecap.length})</span>
+              <span className="sm:hidden">Siswa ({studentRecap.length})</span>
+              <span className="hidden sm:inline">Rekapan per Siswa ({studentRecap.length})</span>
             </button>
             <button
               onClick={() => setActiveTab('perPaket')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 sm:gap-1.5 cursor-pointer whitespace-nowrap ${
                 activeTab === 'perPaket'
                   ? 'bg-purple-600 text-white shadow-md'
                   : 'text-purple-300 hover:text-white'
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
-              <span>Rekapan per Paket CBT ({exams.length})</span>
+              <span className="sm:hidden">Paket ({exams.length})</span>
+              <span className="hidden sm:inline">Rekapan per Paket CBT ({exams.length})</span>
             </button>
           </div>
 

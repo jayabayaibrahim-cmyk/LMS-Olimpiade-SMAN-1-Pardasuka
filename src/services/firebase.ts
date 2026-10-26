@@ -12,7 +12,15 @@ import {
   query,
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
-import { ExamResult, ExamPacket, UserProfile, BimbinganSchedule, LearningMedia } from '../types';
+import {
+  ExamResult,
+  ExamPacket,
+  UserProfile,
+  BimbinganSchedule,
+  LearningMedia,
+  Question,
+  OsnModule,
+} from '../types';
 import { ScholarArticle } from '../data/scholarRepositoryData';
 
 // Initialize Firebase App
@@ -209,6 +217,51 @@ export async function fetchExamPacketsFromFirestore(): Promise<ExamPacket[]> {
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, collPath);
     return [];
+  }
+}
+
+/**
+ * Subscribe to realtime Exam Packets in Firestore
+ */
+export function subscribeExamPackets(
+  onUpdate: (exams: ExamPacket[]) => void
+): () => void {
+  const collPath = 'exams';
+  try {
+    const q = query(collection(db, collPath));
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const exams: ExamPacket[] = [];
+        snapshot.forEach((docSnap) => {
+          exams.push(docSnap.data() as ExamPacket);
+        });
+        if (exams.length > 0) {
+          onUpdate(exams);
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, collPath);
+      }
+    );
+    return unsubscribe;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, collPath);
+    return () => {};
+  }
+}
+
+/**
+ * Sync initial/default exams to Firestore without wiping existing questions
+ */
+export async function syncInitialExamsToFirestore(examsList: ExamPacket[]): Promise<void> {
+  for (const exam of examsList) {
+    try {
+      const docRef = doc(db, 'exams', exam.id);
+      await setDoc(docRef, exam, { merge: true });
+    } catch (error) {
+      console.warn(`Sync exam packet ${exam.id} notice:`, error);
+    }
   }
 }
 
@@ -483,4 +536,111 @@ export function subscribeScholarArticles(
     return () => {};
   }
 }
+
+/**
+ * Save Question to Firebase Firestore
+ */
+export async function saveQuestionToFirestore(question: Question): Promise<void> {
+  const docPath = `questions/${question.id}`;
+  try {
+    const docRef = doc(db, 'questions', question.id);
+    await setDoc(docRef, {
+      ...question,
+      syncedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, docPath);
+  }
+}
+
+/**
+ * Batch/multiple save questions to Firebase Firestore
+ */
+export async function saveMultipleQuestionsToFirestore(questionsList: Question[]): Promise<void> {
+  for (const q of questionsList) {
+    try {
+      const docRef = doc(db, 'questions', q.id);
+      await setDoc(
+        docRef,
+        {
+          ...q,
+          syncedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
+    } catch (e) {
+      console.warn(`Firestore save question ${q.id} notice:`, e);
+    }
+  }
+}
+
+/**
+ * Fetch all questions from Firebase Firestore
+ */
+export async function fetchQuestionsFromFirestore(): Promise<Question[]> {
+  const collPath = 'questions';
+  try {
+    const querySnapshot = await getDocs(collection(db, collPath));
+    const list: Question[] = [];
+    querySnapshot.forEach((d) => {
+      list.push(d.data() as Question);
+    });
+    return list;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, collPath);
+    return [];
+  }
+}
+
+/**
+ * Subscribe to realtime questions in Firebase Firestore
+ */
+export function subscribeQuestions(
+  onUpdate: (questions: Question[]) => void
+): () => void {
+  const collPath = 'questions';
+  try {
+    const q = query(collection(db, collPath));
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const list: Question[] = [];
+        snapshot.forEach((docSnap) => {
+          list.push(docSnap.data() as Question);
+        });
+        if (list.length > 0) {
+          onUpdate(list);
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, collPath);
+      }
+    );
+    return unsubscribe;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, collPath);
+    return () => {};
+  }
+}
+
+/**
+ * Save OSN Module to Firebase Firestore
+ */
+export async function saveModuleToFirestore(moduleItem: OsnModule): Promise<void> {
+  const docPath = `modules/${moduleItem.id}`;
+  try {
+    const docRef = doc(db, 'modules', moduleItem.id);
+    await setDoc(
+      docRef,
+      {
+        ...moduleItem,
+        syncedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, docPath);
+  }
+}
+
 

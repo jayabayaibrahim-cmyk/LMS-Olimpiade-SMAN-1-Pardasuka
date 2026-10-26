@@ -189,10 +189,11 @@ export const LearningMediaView: React.FC<LearningMediaViewProps> = ({
             <div className="flex items-center gap-3 shrink-0">
               <button
                 onClick={() => setIsAddModalOpen(true)}
-                className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-red-600 via-purple-600 to-indigo-600 hover:from-red-500 hover:to-indigo-500 text-white text-xs sm:text-sm font-bold shadow-xl shadow-purple-950/60 transition-all hover:scale-[1.02] cursor-pointer"
+                className="flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2.5 sm:py-3 rounded-2xl bg-gradient-to-r from-red-600 via-purple-600 to-indigo-600 hover:from-red-500 hover:to-indigo-500 text-white text-xs sm:text-sm font-bold shadow-xl shadow-purple-950/60 transition-all hover:scale-[1.02] cursor-pointer"
               >
                 <Plus className="w-4 h-4 text-white" />
-                <span>+ Tambah Video Pembelajaran</span>
+                <span className="sm:hidden">+ Video</span>
+                <span className="hidden sm:inline">+ Tambah Video Pembelajaran</span>
               </button>
             </div>
           )}

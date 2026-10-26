@@ -274,10 +274,11 @@ export const ModulesView: React.FC<ModulesViewProps> = ({
           {/* Button: Cetak Modul PDF */}
           <button
             onClick={() => printOsnModulePdf(activeModule)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-950 hover:bg-purple-900 border border-purple-700/70 text-purple-200 hover:text-white text-xs font-bold transition-all shadow-md cursor-pointer"
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl bg-purple-950 hover:bg-purple-900 border border-purple-700/70 text-purple-200 hover:text-white text-xs font-bold transition-all shadow-md cursor-pointer"
           >
             <Printer className="w-4 h-4 text-amber-300" />
-            <span>Cetak Modul & Silabus (PDF)</span>
+            <span className="sm:hidden">Cetak PDF</span>
+            <span className="hidden sm:inline">Cetak Modul & Silabus (PDF)</span>
           </button>
           {/* Button: + Tambah Modul / Silabus Pembinaan (Khusus Guru / Admin) */}
           {!isStudent && (
@@ -286,10 +287,11 @@ export const ModulesView: React.FC<ModulesViewProps> = ({
                 setNewModSubject(selectedSubject);
                 setShowAddModuleModal(true);
               }}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold transition-all shadow-md cursor-pointer"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold transition-all shadow-md cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span>+ Tambah Modul / Silabus Baru</span>
+              <span className="sm:hidden">+ Modul</span>
+              <span className="hidden sm:inline">+ Tambah Modul / Silabus Baru</span>
             </button>
           )}
         </div>
@@ -339,7 +341,7 @@ export const ModulesView: React.FC<ModulesViewProps> = ({
                     ? `Mata pelajaran aktif: ${item.subject}`
                     : `Aktifkan mata pelajaran: ${item.subject}`
                 }
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border shrink-0 ${
+                className={`flex items-center gap-2 px-3 sm:px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border shrink-0 ${
                   isActive
                     ? 'bg-purple-600 text-white border-purple-400 shadow-md shadow-purple-950 cursor-default'
                     : isStudentLockedOut
@@ -349,15 +351,11 @@ export const ModulesView: React.FC<ModulesViewProps> = ({
               >
                 <span className="text-sm">{item.icon}</span>
                 <span>{item.subject}</span>
-                <span
-                  className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                    isActive
-                      ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/50'
-                      : 'bg-purple-950 text-purple-400/60 border border-purple-900/40'
-                  }`}
-                >
-                  {isActive ? 'Aktif' : 'Tidak Aktif'}
-                </span>
+                {isActive && (
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider bg-emerald-500/25 text-emerald-300 border border-emerald-500/50">
+                    Aktif
+                  </span>
+                )}
               </button>
             );
           })}

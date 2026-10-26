@@ -311,48 +311,52 @@ export const AiQuestionGenerator: React.FC<AiQuestionGeneratorProps> = ({
             <>
               <button
                 onClick={() => setActiveSubTab('generate')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                   effectiveSubTab === 'generate'
                     ? 'bg-purple-600 text-white shadow-md'
                     : 'text-purple-300 hover:text-white'
                 }`}
               >
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>Generator AI</span>
+                <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span className="sm:hidden">Generator</span>
+                <span className="hidden sm:inline">Generator AI</span>
               </button>
               <button
                 onClick={() => setActiveSubTab('bank')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                   effectiveSubTab === 'bank'
                     ? 'bg-purple-600 text-white shadow-md'
                     : 'text-purple-300 hover:text-white'
                 }`}
               >
-                <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Bank Soal ({questions.length})</span>
+                <BookOpen className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span className="sm:hidden">Bank ({questions.length})</span>
+                <span className="hidden sm:inline">Bank Soal ({questions.length})</span>
               </button>
               <button
                 onClick={() => setActiveSubTab('scholar')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                   effectiveSubTab === 'scholar'
                     ? 'bg-blue-600 text-white shadow-md'
                     : 'text-blue-300 hover:text-white'
                 }`}
               >
-                <GraduationCap className="w-3.5 h-3.5 text-blue-400" />
-                <span>Google Scholar Bank Soal</span>
+                <GraduationCap className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                <span className="sm:hidden">Scholar</span>
+                <span className="hidden sm:inline">Google Scholar</span>
               </button>
               {isAdmin && (
                 <button
                   onClick={() => setActiveSubTab('analysis')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                     effectiveSubTab === 'analysis'
                       ? 'bg-cyan-600 text-white shadow-md'
                       : 'text-cyan-300 hover:text-white'
                   }`}
                 >
-                  <BarChart3 className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Analisis Soal</span>
+                  <BarChart3 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                  <span className="sm:hidden">Analisis</span>
+                  <span className="hidden sm:inline">Analisis Soal</span>
                 </button>
               )}
             </>
@@ -360,25 +364,27 @@ export const AiQuestionGenerator: React.FC<AiQuestionGeneratorProps> = ({
             <>
               <button
                 onClick={() => setActiveSubTab('bank')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                   effectiveSubTab === 'bank'
                     ? 'bg-purple-600 text-white shadow-md'
                     : 'text-purple-300 hover:text-white'
                 }`}
               >
-                <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Daftar Soal Terjadwal ({questions.length})</span>
+                <BookOpen className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span className="sm:hidden">Soal ({questions.length})</span>
+                <span className="hidden sm:inline">Soal Terjadwal ({questions.length})</span>
               </button>
               <button
                 onClick={() => setActiveSubTab('scholar')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                   effectiveSubTab === 'scholar'
                     ? 'bg-blue-600 text-white shadow-md'
                     : 'text-blue-300 hover:text-white'
                 }`}
               >
-                <GraduationCap className="w-3.5 h-3.5 text-blue-400" />
-                <span>Google Scholar Bank Soal</span>
+                <GraduationCap className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                <span className="sm:hidden">Scholar</span>
+                <span className="hidden sm:inline">Google Scholar</span>
               </button>
             </>
           )}
@@ -875,9 +881,9 @@ export const AiQuestionGenerator: React.FC<AiQuestionGeneratorProps> = ({
           )}
 
           {/* Controls Bar: Search, Filters, and Export Actions */}
-          <div className="bg-[#180e2f]/80 border border-purple-800/40 rounded-2xl p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+          <div className="bg-[#180e2f]/80 border border-purple-800/40 rounded-2xl p-3.5 sm:p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
             {/* Search */}
-            <div className="relative flex-1">
+            <div className="relative flex-1 min-w-[200px]">
               <Search className="w-4 h-4 text-purple-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
@@ -888,60 +894,61 @@ export const AiQuestionGenerator: React.FC<AiQuestionGeneratorProps> = ({
               />
             </div>
 
-            {/* Subject Filter */}
-            {isAdmin ? (
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Subject Filter */}
+              {isAdmin ? (
+                <select
+                  aria-label="Filter Berdasarkan Bidang OSN"
+                  value={filterSubject}
+                  onChange={(e) => setFilterSubject(e.target.value)}
+                  className="bg-[#120924] border border-purple-700/60 rounded-xl px-2.5 sm:px-3 py-2 text-xs text-purple-200 focus:outline-none cursor-pointer max-w-[150px] sm:max-w-none truncate"
+                >
+                  <option value="All">Semua Bidang ({questions.length})</option>
+                  {OSN_SUBJECTS.map((s) => (
+                    <option key={s} value={s}>
+                      {s} ({questions.filter((q) => q.subject === s).length})
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div className="flex items-center gap-1.5 px-2.5 py-2 bg-[#120924] border border-cyan-700/60 rounded-xl text-xs text-cyan-200 font-bold whitespace-nowrap">
+                  <span>Mapel: {userAssignedSubject}</span>
+                  <span className="text-[10px] bg-cyan-950 px-1.5 py-0.5 rounded text-cyan-300 border border-cyan-800">
+                    {filteredQuestions.length} Soal
+                  </span>
+                </div>
+              )}
+
+              {/* Bloom Filter */}
               <select
-                aria-label="Filter Berdasarkan Bidang OSN"
-                value={filterSubject}
-                onChange={(e) => setFilterSubject(e.target.value)}
-                className="bg-[#120924] border border-purple-700/60 rounded-xl px-3 py-2 text-xs text-purple-200 focus:outline-none cursor-pointer"
+                aria-label="Filter Berdasarkan Taksonomi Bloom"
+                value={filterBloom}
+                onChange={(e) => setFilterBloom(e.target.value)}
+                className="bg-[#120924] border border-purple-700/60 rounded-xl px-2.5 sm:px-3 py-2 text-xs text-purple-200 focus:outline-none cursor-pointer max-w-[140px] sm:max-w-none truncate"
               >
-                <option value="All">Semua Bidang OSN ({questions.length})</option>
-                {OSN_SUBJECTS.map((s) => (
-                  <option key={s} value={s}>
-                    {s} ({questions.filter((q) => q.subject === s).length})
-                  </option>
-                ))}
+                <option value="All">Semua Bloom</option>
+                <option value="C1">C1 (Mengingat)</option>
+                <option value="C2">C2 (Memahami)</option>
+                <option value="C3">C3 (Mengaplikasikan)</option>
+                <option value="C4">C4 (Menganalisis)</option>
+                <option value="C5">C5 (Mengevaluasi)</option>
+                <option value="C6">C6 (Menciptakan/HOTS)</option>
               </select>
-            ) : (
-              <div className="flex items-center gap-1.5 px-3 py-2 bg-[#120924] border border-cyan-700/60 rounded-xl text-xs text-cyan-200 font-bold whitespace-nowrap">
-                <span>Mapel: {userAssignedSubject}</span>
-                <span className="text-[10px] bg-cyan-950 px-1.5 py-0.5 rounded text-cyan-300 border border-cyan-800">
-                  {filteredQuestions.length} Soal
-                </span>
-              </div>
-            )}
 
-            {/* Bloom Filter */}
-            <select
-              aria-label="Filter Berdasarkan Taksonomi Bloom"
-              value={filterBloom}
-              onChange={(e) => setFilterBloom(e.target.value)}
-              className="bg-[#120924] border border-purple-700/60 rounded-xl px-3 py-2 text-xs text-purple-200 focus:outline-none cursor-pointer"
-            >
-              <option value="All">Semua Taksonomi Bloom</option>
-              <option value="C1">C1 (Mengingat)</option>
-              <option value="C2">C2 (Memahami)</option>
-              <option value="C3">C3 (Mengaplikasikan)</option>
-              <option value="C4">C4 (Menganalisis)</option>
-              <option value="C5">C5 (Mengevaluasi)</option>
-              <option value="C6">C6 (Menciptakan/HOTS)</option>
-            </select>
-
-            {/* Export Buttons */}
-            <div className="flex items-center gap-2">
+              {/* Export Buttons */}
               <button
                 onClick={() => exportQuestionsToCsv(filteredQuestions)}
                 title="Unduh format spreadsheet CSV"
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-950 border border-purple-700/60 hover:bg-purple-900 text-xs font-semibold text-purple-200 transition-colors cursor-pointer"
+                className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl bg-purple-950 border border-purple-700/60 hover:bg-purple-900 text-xs font-semibold text-purple-200 transition-colors cursor-pointer"
               >
                 <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Export CSV</span>
+                <span className="sm:hidden">CSV</span>
+                <span className="hidden sm:inline">Export CSV</span>
               </button>
               <button
                 onClick={() => exportQuestionsToJson(filteredQuestions)}
                 title="Unduh format JSON"
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-950 border border-purple-700/60 hover:bg-purple-900 text-xs font-semibold text-purple-200 transition-colors cursor-pointer"
+                className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl bg-purple-950 border border-purple-700/60 hover:bg-purple-900 text-xs font-semibold text-purple-200 transition-colors cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5 text-blue-400" />
                 <span>JSON</span>

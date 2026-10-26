@@ -30,6 +30,7 @@ import {
 } from '../types';
 import { printBimbinganSchedulePdf } from '../services/pdfPrintService';
 import { generateOsnQuestions } from '../services/aiQuestionService';
+import { getBloomAbbr, getSoloAbbr } from '../utils/abbreviations';
 
 interface BimbinganScheduleViewProps {
   schedules: BimbinganSchedule[];
@@ -213,14 +214,15 @@ export const BimbinganScheduleView: React.FC<BimbinganScheduleViewProps> = ({
           {isTeacher ? (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-purple-950 transition-all hover:scale-[1.02] cursor-pointer"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-purple-950 transition-all hover:scale-[1.02] cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span>+ Tambah Jadwal Bimbingan</span>
+              <span className="sm:hidden">+ Jadwal</span>
+              <span className="hidden sm:inline">+ Tambah Jadwal Bimbingan</span>
             </button>
           ) : (
-            <div className="text-[11px] px-3 py-1.5 rounded-xl bg-purple-950/80 border border-purple-800 text-purple-300">
-              Role: <strong>Siswa Bimbingan ({userSelectedSubject})</strong>
+            <div className="text-[11px] px-2.5 sm:px-3 py-1.5 rounded-xl bg-purple-950/80 border border-purple-800 text-purple-300">
+              Role: <strong>Siswa ({userSelectedSubject})</strong>
             </div>
           )}
         </div>
@@ -314,10 +316,12 @@ export const BimbinganScheduleView: React.FC<BimbinganScheduleViewProps> = ({
                         {schedule.subject}
                       </span>
                       <span className="text-xs font-semibold px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-700/50">
-                        {schedule.targetBloom}
+                        <span className="hidden sm:inline">{schedule.targetBloom}</span>
+                        <span className="sm:hidden">{getBloomAbbr(schedule.targetBloom)}</span>
                       </span>
                       <span className="text-xs font-semibold px-2 py-0.5 rounded bg-pink-950 text-pink-300 border border-pink-700/50">
-                        SOLO: {schedule.targetSolo}
+                        <span className="hidden sm:inline">SOLO: {schedule.targetSolo}</span>
+                        <span className="sm:hidden">{getSoloAbbr(schedule.targetSolo)}</span>
                       </span>
                       <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-600/60">
                         {schedule.status}
@@ -402,7 +406,8 @@ export const BimbinganScheduleView: React.FC<BimbinganScheduleViewProps> = ({
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-950 hover:bg-purple-900 border border-purple-700/70 text-purple-200 hover:text-white text-xs font-bold transition-all shadow cursor-pointer"
                           >
                             <Printer className="w-3.5 h-3.5 text-amber-300" />
-                            <span>Cetak Kegiatan & Soal (PDF)</span>
+                            <span className="sm:hidden">Cetak PDF</span>
+                            <span className="hidden sm:inline">Cetak Kegiatan & Soal (PDF)</span>
                           </button>
                           {isTeacher && (
                             <button
@@ -414,7 +419,8 @@ export const BimbinganScheduleView: React.FC<BimbinganScheduleViewProps> = ({
                               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-amber-600 hover:from-purple-500 hover:to-amber-500 text-white text-xs font-bold transition-all shadow cursor-pointer"
                             >
                               <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                              <span>+ Generate Soal AI untuk Bimbingan Ini</span>
+                              <span className="sm:hidden">+ Soal AI</span>
+                              <span className="hidden sm:inline">+ Generate Soal AI untuk Bimbingan Ini</span>
                             </button>
                           )}
                         </div>

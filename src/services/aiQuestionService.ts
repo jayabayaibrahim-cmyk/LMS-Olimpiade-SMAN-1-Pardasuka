@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type } from '@google/genai';
+import { GoogleGenAI, Type, ThinkingLevel } from '@google/genai';
 import {
   OsnSubject,
   CompetitionLevel,
@@ -6,6 +6,8 @@ import {
   SoloTaxonomy,
   Question,
 } from '../types';
+
+export type ReasoningLevel = 'rendah' | 'sedang' | 'tinggi';
 
 export interface GenerateQuestionsParams {
   subject: OsnSubject;
@@ -15,9 +17,65 @@ export interface GenerateQuestionsParams {
   count: number;
   topic: string;
   questionType: 'pilihan_ganda' | 'esai' | 'bergambar';
-  reasoningLevel?: 'standar' | 'sedang' | 'tinggi';
   customPrompt?: string;
   authorName?: string;
+  modelEngine?: 'gemini-3.8-flash' | 'gemini-4-argon' | string;
+  reasoningLevel?: ReasoningLevel | 'low' | 'medium' | 'high';
+  apiKey?: string;
+}
+
+export function getSavedGeminiApiKey(): string {
+  try {
+    return localStorage.getItem('custom_gemini_api_key') || '';
+  } catch {
+    return '';
+  }
+}
+
+export function saveGeminiApiKey(key: string): void {
+  try {
+    if (key.trim()) {
+      localStorage.setItem('custom_gemini_api_key', key.trim());
+    } else {
+      localStorage.removeItem('custom_gemini_api_key');
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+export function getSavedGeminiEngine(): string {
+  try {
+    return localStorage.getItem('custom_gemini_engine') || 'gemini-3.8-flash';
+  } catch {
+    return 'gemini-3.8-flash';
+  }
+}
+
+export function saveGeminiEngine(engine: string): void {
+  try {
+    localStorage.setItem('custom_gemini_engine', engine);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+export function getSavedReasoningLevel(): ReasoningLevel {
+  try {
+    const val = localStorage.getItem('custom_gemini_reasoning');
+    if (val === 'rendah' || val === 'tinggi') return val;
+    return 'sedang';
+  } catch {
+    return 'sedang';
+  }
+}
+
+export function saveReasoningLevel(level: ReasoningLevel): void {
+  try {
+    localStorage.setItem('custom_gemini_reasoning', level);
+  } catch (e) {
+    console.error(e);
+  }
 }
 
 export interface GenerateQuestionsResponse {
@@ -25,6 +83,8 @@ export interface GenerateQuestionsResponse {
   questions: Question[];
   source: string;
   note?: string;
+  modelEngine?: string;
+  reasoningLevel?: string;
 }
 
 // Comprehensive OSN Question Bank for Client-Side Generation (Covers all 9 subjects)
@@ -409,14 +469,15 @@ export async function generateOsnQuestions(
     questionType,
     customPrompt,
     authorName,
+    modelEngine = getSavedGeminiEngine(),
+    reasoningLevel = getSavedReasoningLevel(),
+    apiKey = getSavedGeminiApiKey(),
   } = params;
 
   // 1. Try calling the backend endpoint first (works in dev / express environment)
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
-
-    const reasoningMode = params.reasoningLevel || 'sedang';
+    const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s timeout for deeper reasoning
 
     const response = await fetch('/api/ai/generate-questions', {
       method: 'POST',
@@ -429,8 +490,10 @@ export async function generateOsnQuestions(
         count,
         topic,
         questionType,
-        reasoningLevel: reasoningMode,
         customPrompt,
+        modelEngine,
+        reasoningLevel,
+        apiKey,
       }),
       signal: controller.signal,
     });
@@ -445,8 +508,10 @@ export async function generateOsnQuestions(
         return {
           success: true,
           questions: data.questions,
-          source: data.source || 'gemini-3.8-flash (penalaran sedang)',
-          note: data.note || `Soal ${subject} dirangkai via Engine Gemini 3.8 Flash (Penalaran Sedang).`,
+          source: data.source || modelEngine,
+          modelEngine: data.modelEngine || modelEngine,
+          reasoningLevel: data.reasoningLevel || reasoningLevel,
+          note: data.note,
         };
       }
     }
@@ -454,29 +519,38 @@ export async function generateOsnQuestions(
     console.warn('Backend /api/ai/generate-questions not reachable (expected on static deployments like Firebase Hosting / GitHub Pages / Vercel):', apiError);
   }
 
-  // 2. Try Client-Side Gemini if VITE_GEMINI_API_KEY is configured
-  const clientApiKey =
+  // 2. Try Client-Side Gemini if API Key is configured
+  const effectiveClientApiKey =
+    apiKey?.trim() ||
+    getSavedGeminiApiKey() ||
     (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY) ||
     (typeof process !== 'undefined' && process.env?.GEMINI_API_KEY);
 
-  if (clientApiKey && clientApiKey !== 'MY_GEMINI_API_KEY') {
+  if (effectiveClientApiKey && effectiveClientApiKey !== 'MY_GEMINI_API_KEY') {
     try {
-      const clientAi = new GoogleGenAI({ apiKey: clientApiKey });
+      const clientAi = new GoogleGenAI({ apiKey: effectiveClientApiKey });
+      const targetModel = modelEngine === 'gemini-4-argon' || modelEngine === 'gemini-4' ? 'gemini-4-argon' : 'gemini-3.8-flash';
+
+      let chosenThinkingLevel = ThinkingLevel.MEDIUM;
+      if (reasoningLevel === 'rendah' || reasoningLevel === 'low') {
+        chosenThinkingLevel = ThinkingLevel.LOW;
+      } else if (reasoningLevel === 'tinggi' || reasoningLevel === 'high') {
+        chosenThinkingLevel = ThinkingLevel.HIGH;
+      }
+
       const systemPrompt = `Anda adalah Tim Ahli Penyusun Soal Olimpiade Sains Nasional (OSN) SMAN 1 PARDASUKA.
-Engine: Gemini 3.8 Flash dengan Mode Penalaran Sedang (Moderate Thinking / Chain-of-Thought).
-Lakukan dekonstruksi konsep, telaah prasyarat ilmiah, verifikasi hukum alam dan batasan fisis secara bertahap sebelum merangkum opsi jawaban dan pembahasan.
 Susun soal OSN bidang ${subject} tingkat ${level} dengan topik "${topic}", Taksonomi Bloom "${bloomTaxonomy}", Taksonomi SOLO "${soloTaxonomy}".
 Pastikan materi 100% murni bidang ${subject}.`;
 
       const response = await clientAi.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: `Gunakan penalaran sedang (medium reasoning): Buatkan ${count} butir soal ${subject} bertipe ${questionType} dengan topik "${topic}". Lakukan pembuktian analitis dan penalaran langkah demi langkah pada penjelasan ilmiah.`,
+        model: targetModel,
+        contents: `Buatkan ${count} butir soal ${subject} bertipe ${questionType} dengan topik "${topic}".`,
         config: {
           systemInstruction: systemPrompt,
-          thinkingConfig: {
-            thinkingBudget: 2048,
-          },
           responseMimeType: 'application/json',
+          thinkingConfig: {
+            thinkingLevel: chosenThinkingLevel,
+          },
           responseSchema: {
             type: Type.ARRAY,
             items: {
@@ -526,15 +600,17 @@ Pastikan materi 100% murni bidang ${subject}.`;
           imageCaption: q.imageCaption,
           sampleEssayAnswer: q.sampleEssayAnswer,
           rubricOrKeyPoints: q.rubricOrKeyPoints,
-          author: authorName || 'AI Gemini (Pembina SMAN 1 Pardasuka)',
+          author: authorName || `${targetModel === 'gemini-4-argon' ? 'Gemini 4 Argon' : 'AI Gemini'} (Pembina SMAN 1 Pardasuka)`,
           createdAt: new Date().toISOString().split('T')[0],
         }));
 
         return {
           success: true,
           questions: mappedQuestions,
-          source: 'gemini-3.8-flash',
-          note: `Berhasil dirangkai menggunakan Engine AI Gemini 3.8 Flash (Bidang ${subject}).`,
+          source: targetModel,
+          modelEngine: targetModel,
+          reasoningLevel,
+          note: `Berhasil dirangkai menggunakan Engine ${targetModel === 'gemini-4-argon' ? 'Gemini 4 Argon' : 'Gemini 3.8 Flash'} (Penalaran: ${reasoningLevel.toUpperCase()}).`,
         };
       }
     } catch (clientGeminiError) {
@@ -559,6 +635,8 @@ Pastikan materi 100% murni bidang ${subject}.`;
     success: true,
     questions: fallbackQuestions,
     source: 'kurikulum-internal-sman1pardasuka',
+    modelEngine,
+    reasoningLevel,
     note: `Soal ${subject} berhasil dirangkai dari Bank Silabus Terkalibrasi SMAN 1 Pardasuka (${level}).`,
   };
 }

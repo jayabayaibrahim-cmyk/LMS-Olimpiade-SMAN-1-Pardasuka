@@ -80,41 +80,45 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
             <button
               onClick={() => setActiveTab('bimbingan')}
-              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-purple-900/50 transition-all hover:scale-[1.02] cursor-pointer"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-purple-900/50 transition-all hover:scale-[1.02] cursor-pointer"
             >
-              <Calendar className="w-4 h-4 text-pink-300" />
-              <span>Jadwal Bimbingan</span>
+              <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-pink-300" />
+              <span className="sm:hidden">Jadwal</span>
+              <span className="hidden sm:inline">Jadwal Bimbingan</span>
             </button>
             <button
               onClick={() => setActiveTab('cbt')}
-              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-purple-950/80 hover:bg-purple-900 border border-purple-700/60 text-purple-200 text-xs sm:text-sm font-semibold transition-all hover:scale-[1.02] cursor-pointer"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl bg-purple-950/80 hover:bg-purple-900 border border-purple-700/60 text-purple-200 text-xs sm:text-sm font-semibold transition-all hover:scale-[1.02] cursor-pointer"
             >
-              <Cpu className="w-4 h-4 text-emerald-300" />
+              <Cpu className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-300" />
               <span>Ujian CBT</span>
             </button>
             <button
               onClick={() => setActiveTab('generator')}
-              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-purple-950/80 hover:bg-purple-900 border border-purple-700/60 text-purple-200 text-xs sm:text-sm font-semibold transition-all hover:scale-[1.02] cursor-pointer"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl bg-purple-950/80 hover:bg-purple-900 border border-purple-700/60 text-purple-200 text-xs sm:text-sm font-semibold transition-all hover:scale-[1.02] cursor-pointer"
             >
-              <Sparkles className="w-4 h-4 text-amber-400" />
-              <span>{currentUser.role === 'student' ? 'Soal Bimbingan' : 'Bank Soal AI'}</span>
+              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
+              <span className="sm:hidden">{currentUser.role === 'student' ? 'Soal' : 'Bank Soal'}</span>
+              <span className="hidden sm:inline">{currentUser.role === 'student' ? 'Soal Bimbingan' : 'Bank Soal AI'}</span>
             </button>
             <button
               onClick={() => setActiveTab('generator')}
-              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-blue-950/80 hover:bg-blue-900 border border-blue-600/60 text-blue-200 text-xs sm:text-sm font-semibold transition-all hover:scale-[1.02] cursor-pointer"
+              className="flex items-center gap-1.5 px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl bg-blue-950/80 hover:bg-blue-900 border border-blue-600/60 text-blue-200 text-xs sm:text-sm font-semibold transition-all hover:scale-[1.02] cursor-pointer"
             >
-              <GraduationCap className="w-4 h-4 text-blue-400" />
-              <span>Google Scholar</span>
+              <GraduationCap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400" />
+              <span className="sm:hidden">Scholar</span>
+              <span className="hidden sm:inline">Google Scholar</span>
             </button>
             <button
               onClick={() => setActiveTab('media')}
-              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-red-950/80 hover:bg-red-900 border border-red-600/60 text-red-200 text-xs sm:text-sm font-semibold transition-all hover:scale-[1.02] cursor-pointer"
+              className="flex items-center gap-1.5 px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl bg-red-950/80 hover:bg-red-900 border border-red-600/60 text-red-200 text-xs sm:text-sm font-semibold transition-all hover:scale-[1.02] cursor-pointer"
             >
-              <Youtube className="w-4 h-4 text-red-400" />
-              <span>Media Belajar</span>
+              <Youtube className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-400" />
+              <span className="sm:hidden">Media</span>
+              <span className="hidden sm:inline">Media Belajar</span>
             </button>
           </div>
         </div>
@@ -237,7 +241,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-2xl">{item.icon}</span>
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-950/80 text-purple-200 border border-purple-700/50">
-                    OSN SMAN 1 PARDASUKA
+                    <span className="hidden sm:inline">OSN SMAN 1 PARDASUKA</span>
+                    <span className="sm:hidden">OSN SMAN 1 PDS</span>
                   </span>
                 </div>
                 <h3 className="text-base font-bold text-white">{item.subject}</h3>
@@ -339,10 +344,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
           <div className="bg-[#180e2f]/80 border border-purple-800/40 rounded-xl p-4 divide-y divide-purple-900/40">
             {INITIAL_LEADERBOARD.map((item) => (
-              <div key={item.nisn} className="py-2.5 first:pt-0 last:pb-0 flex items-center justify-between">
-                <div className="flex items-center gap-3">
+              <div key={item.nisn} className="py-2.5 first:pt-0 last:pb-0 flex items-center justify-between gap-2 min-w-0">
+                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
                   <div
-                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                    className={`w-6 h-6 shrink-0 rounded-full flex items-center justify-center text-xs font-bold ${
                       item.rank === 1
                         ? 'bg-amber-400 text-slate-900'
                         : item.rank === 2
@@ -354,15 +359,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   >
                     {item.rank}
                   </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-white">{item.name}</h4>
-                    <p className="text-[10px] text-purple-300/70">
+                  <div className="min-w-0">
+                    <h4 className="text-xs font-bold text-white truncate max-w-[120px] sm:max-w-none">{item.name}</h4>
+                    <p className="text-[10px] text-purple-300/70 truncate">
                       {item.class} • <span className="text-amber-300 font-semibold">{item.subject}</span>
                     </p>
                   </div>
                 </div>
 
-                <div className="text-right">
+                <div className="text-right shrink-0">
                   <span className="text-sm font-extrabold text-amber-300">{item.score}</span>
                   <p className="text-[10px] text-purple-300/60">{item.medal}</p>
                 </div>

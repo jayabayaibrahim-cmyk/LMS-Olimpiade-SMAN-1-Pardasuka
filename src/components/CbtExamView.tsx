@@ -30,6 +30,7 @@ import { QuestionAnalysisView } from './QuestionAnalysisView';
 import { CbtExamRecapModal } from './CbtExamRecapModal';
 import { shuffleQuestionsForAccount, shuffleQuestionsArray } from '../utils/shuffleUtils';
 import { explainQuestionRemediation } from '../services/aiQuestionService';
+import { getCompetitionLevelAbbr, getBloomAbbr, getSoloAbbr } from '../utils/abbreviations';
 
 interface CbtExamViewProps {
   exams: ExamPacket[];
@@ -374,42 +375,43 @@ export const CbtExamView: React.FC<CbtExamViewProps> = ({
     return (
       <div className="space-y-4 pb-20 select-none">
         {/* Top Sticky CBT Bar */}
-        <div className="bg-[#180e2f]/95 border border-purple-800/60 backdrop-blur rounded-2xl p-4 sticky top-20 z-30 shadow-xl flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-purple-950 text-purple-200 border border-purple-700/60">
-              {selectedExam.subject} • {selectedExam.level}
+        <div className="bg-[#180e2f]/95 border border-purple-800/60 backdrop-blur rounded-2xl p-3 sm:p-4 sticky top-16 sm:top-20 z-30 shadow-xl flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 flex-wrap min-w-0">
+            <span className="text-[11px] sm:text-xs font-bold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg bg-purple-950 text-purple-200 border border-purple-700/60 shrink-0">
+              {selectedExam.subject} • {getCompetitionLevelAbbr(selectedExam.level)}
             </span>
-            <h2 className="text-sm font-bold text-white truncate max-w-[200px] sm:max-w-md">
+            <h2 className="text-xs sm:text-sm font-bold text-white truncate max-w-[130px] sm:max-w-md">
               {selectedExam.title}
             </h2>
-            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-700/60 flex items-center gap-1 font-mono">
-              <Shuffle className="w-3 h-3 text-cyan-400" />
-              Soal Diacak Khusus: {currentUser.name}
+            <span className="text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-700/60 flex items-center gap-1 font-mono">
+              <Shuffle className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-cyan-400" />
+              <span className="sm:hidden">Acak</span>
+              <span className="hidden sm:inline">Diacak: {selectedExam.shuffleQuestionsPerAccount ? currentUser.name : 'Standar'}</span>
             </span>
-            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-950/80 text-blue-300 border border-blue-700/60 flex items-center gap-1 font-mono">
-              <History className="w-3 h-3 text-blue-400" />
-              Pengerjaan Ke-{currentExamAttemptNumber} Kali
+            <span className="text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-950/80 text-blue-300 border border-blue-700/60 flex items-center gap-1 font-mono">
+              <History className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-blue-400" />
+              <span>Ke-{currentExamAttemptNumber}</span>
             </span>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-auto">
             {/* Countdown Timer with Pulsing Alert */}
             <div
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border font-mono text-sm font-extrabold ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border font-mono text-xs sm:text-sm font-extrabold ${
                 remainingSeconds < 300
                   ? 'bg-rose-950/80 border-rose-500 text-rose-300 animate-pulse'
                   : 'bg-purple-950/80 border-purple-700/60 text-amber-300'
               }`}
             >
-              <Clock className="w-4 h-4 text-amber-400" />
+              <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
               <span>{formatTimer(remainingSeconds)}</span>
             </div>
 
             {/* Anti Cheat Violation Counter Badge */}
             {tabSwitchViolations > 0 && (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-950/90 border border-rose-600/60 text-rose-300 text-xs font-bold animate-bounce">
-                <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
-                <span>Tab Switch: {tabSwitchViolations}x</span>
+              <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-rose-950/90 border border-rose-600/60 text-rose-300 text-[10px] sm:text-xs font-bold animate-bounce">
+                <ShieldAlert className="w-3 h-3 text-rose-400" />
+                <span>Switch: {tabSwitchViolations}x</span>
               </div>
             )}
 
@@ -420,7 +422,7 @@ export const CbtExamView: React.FC<CbtExamViewProps> = ({
                 if (questionTimeRemaining > 0) return;
                 setShowSubmitConfirmModal(true);
               }}
-              className={`px-4 py-1.5 rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-1.5 ${
+              className={`px-3 sm:px-4 py-1 sm:py-1.5 rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-1 ${
                 questionTimeRemaining > 0
                   ? 'bg-emerald-950/50 border border-emerald-900/50 text-emerald-400/50 cursor-not-allowed opacity-60'
                   : 'bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer'
@@ -433,11 +435,15 @@ export const CbtExamView: React.FC<CbtExamViewProps> = ({
             >
               {questionTimeRemaining > 0 ? (
                 <>
-                  <Lock className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Selesai ({questionTimeRemaining}s)</span>
+                  <Lock className="w-3 h-3 text-amber-400" />
+                  <span className="sm:hidden">{questionTimeRemaining}s</span>
+                  <span className="hidden sm:inline">Selesai ({questionTimeRemaining}s)</span>
                 </>
               ) : (
-                <span>Selesai Ujian</span>
+                <>
+                  <span className="sm:hidden">Selesai</span>
+                  <span className="hidden sm:inline">Selesai Ujian</span>
+                </>
               )}
             </button>
           </div>
@@ -473,23 +479,26 @@ export const CbtExamView: React.FC<CbtExamViewProps> = ({
                 )}
 
                 <span className="px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-700/60 font-semibold text-xs">
-                  {activeQ.bloomLevel}
+                  <span className="hidden sm:inline">{activeQ.bloomLevel}</span>
+                  <span className="sm:hidden">{getBloomAbbr(activeQ.bloomLevel)}</span>
                 </span>
                 <span className="px-2 py-0.5 rounded bg-pink-950 text-pink-300 border border-pink-700/60 font-semibold text-xs">
-                  SOLO: {activeQ.soloLevel}
+                  <span className="hidden sm:inline">SOLO: {activeQ.soloLevel}</span>
+                  <span className="sm:hidden">{getSoloAbbr(activeQ.soloLevel)}</span>
                 </span>
               </div>
             </div>
 
             {/* 60s Question Timer Progress Bar */}
             <div className="space-y-1 bg-[#120723] p-2.5 rounded-xl border border-purple-900/40">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-purple-300/90 flex items-center gap-1.5 font-medium">
-                  <Clock className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Wajib 60 Detik di Soal #{currentQuestionIndex + 1} sebelum lanjut/kembali:</span>
+              <div className="flex items-center justify-between text-[11px] gap-2">
+                <span className="text-purple-300/90 flex items-center gap-1.5 font-medium truncate">
+                  <Clock className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                  <span className="hidden sm:inline">Wajib 60 Detik di Soal #{currentQuestionIndex + 1} sebelum lanjut/kembali:</span>
+                  <span className="sm:hidden">Wajib 60d di Soal #{currentQuestionIndex + 1}:</span>
                 </span>
-                <span className={`font-mono font-bold ${questionTimeRemaining > 0 ? 'text-amber-300' : 'text-emerald-400'}`}>
-                  {questionTimeRemaining > 0 ? `${questionTimeRemaining} detik tersisa` : 'Siap pindah soal ✓'}
+                <span className={`font-mono font-bold shrink-0 ${questionTimeRemaining > 0 ? 'text-amber-300' : 'text-emerald-400'}`}>
+                  {questionTimeRemaining > 0 ? `${questionTimeRemaining}s tersisa` : 'Siap pindah ✓'}
                 </span>
               </div>
               <div className="w-full bg-[#1c0e35] rounded-full h-1.5 overflow-hidden">
@@ -507,13 +516,13 @@ export const CbtExamView: React.FC<CbtExamViewProps> = ({
             </div>
 
             {/* Question Text */}
-            <div className="text-base font-normal text-white leading-relaxed">
+            <div className="text-sm sm:text-base font-normal text-white leading-relaxed break-words">
               {activeQ.questionText}
             </div>
 
             {/* Formula / Scientific Context if exists */}
             {activeQ.formulaOrContext && (
-              <div className="p-3 rounded-xl bg-purple-950/80 border border-purple-700/50 font-mono text-xs text-amber-300 leading-normal">
+              <div className="p-3 rounded-xl bg-purple-950/80 border border-purple-700/50 font-mono text-xs text-amber-300 leading-normal break-words overflow-x-auto">
                 <span className="text-purple-400 font-sans block text-[10px] uppercase font-bold mb-1">
                   Formula / Konteks Rujukan:
                 </span>
@@ -531,7 +540,7 @@ export const CbtExamView: React.FC<CbtExamViewProps> = ({
                   <div
                     key={optIdx}
                     onClick={() => handleSelectOption(activeQ.id, optIdx)}
-                    className={`p-3.5 rounded-xl border flex items-center gap-3.5 cursor-pointer transition-all ${
+                    className={`p-3 sm:p-3.5 rounded-xl border flex items-center gap-3 cursor-pointer transition-all ${
                       isSelected
                         ? 'bg-purple-600/30 border-purple-400 text-white shadow-md shadow-purple-950'
                         : 'bg-[#120924]/70 border-purple-900/40 text-purple-200 hover:border-purple-700 hover:bg-[#120924]'
@@ -546,21 +555,21 @@ export const CbtExamView: React.FC<CbtExamViewProps> = ({
                     >
                       {optionLetters[optIdx]}
                     </div>
-                    <span className="text-xs sm:text-sm font-medium leading-normal">{option}</span>
+                    <span className="text-xs sm:text-sm font-medium leading-normal break-words min-w-0 flex-1">{option}</span>
                   </div>
                 );
               })}
             </div>
 
             {/* Navigation & Doubtful Flag Buttons */}
-            <div className="pt-6 border-t border-purple-900/40 flex flex-wrap items-center justify-between gap-3">
+            <div className="pt-5 sm:pt-6 border-t border-purple-900/40 flex flex-wrap items-center justify-between gap-2 sm:gap-3">
               <button
                 disabled={currentQuestionIndex === 0 || questionTimeRemaining > 0}
                 onClick={() => {
                   if (questionTimeRemaining > 0) return;
                   setCurrentQuestionIndex((prev) => Math.max(0, prev - 1));
                 }}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-xs font-semibold transition-all ${
+                className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl border text-xs font-semibold transition-all ${
                   currentQuestionIndex === 0 || questionTimeRemaining > 0
                     ? 'bg-purple-950/40 border-purple-900/40 text-purple-400/50 cursor-not-allowed opacity-60'
                     : 'bg-purple-950 border-purple-800/60 hover:bg-purple-900 text-purple-200 cursor-pointer shadow-md'
@@ -573,27 +582,30 @@ export const CbtExamView: React.FC<CbtExamViewProps> = ({
               >
                 {questionTimeRemaining > 0 ? (
                   <>
-                    <Lock className="w-4 h-4 text-amber-400" />
-                    <span>Soal Sebelumnya ({questionTimeRemaining}s)</span>
+                    <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
+                    <span className="sm:hidden">Seb. ({questionTimeRemaining}s)</span>
+                    <span className="hidden sm:inline">Soal Sebelumnya ({questionTimeRemaining}s)</span>
                   </>
                 ) : (
                   <>
-                    <ArrowLeft className="w-4 h-4" />
-                    <span>Soal Sebelumnya</span>
+                    <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    <span className="sm:hidden">Seb.</span>
+                    <span className="hidden sm:inline">Soal Sebelumnya</span>
                   </>
                 )}
               </button>
 
               <button
                 onClick={() => handleToggleDoubtful(activeQ.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
                   isDoubtful
                     ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-sm'
                     : 'bg-purple-950 border-purple-800/60 text-purple-300 hover:text-white'
                 }`}
               >
-                <AlertTriangle className="w-4 h-4 text-amber-400" />
-                <span>{isDoubtful ? 'Tandai Ragu-Ragu (Aktif)' : 'Ragu-Ragu'}</span>
+                <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
+                <span className="sm:hidden">{isDoubtful ? 'Ragu (On)' : 'Ragu'}</span>
+                <span className="hidden sm:inline">{isDoubtful ? 'Tandai Ragu-Ragu (Aktif)' : 'Ragu-Ragu'}</span>
               </button>
 
               {currentQuestionIndex < selectedExam.questions.length - 1 ? (
@@ -605,7 +617,7 @@ export const CbtExamView: React.FC<CbtExamViewProps> = ({
                       Math.min(selectedExam.questions.length - 1, prev + 1)
                     );
                   }}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold shadow-md transition-all ${
+                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-semibold shadow-md transition-all ${
                     questionTimeRemaining > 0
                       ? 'bg-purple-900/40 border border-purple-800/40 text-purple-300/50 cursor-not-allowed opacity-60'
                       : 'bg-purple-600 hover:bg-purple-500 text-white cursor-pointer shadow-purple-900/50 hover:scale-[1.02]'
@@ -618,13 +630,15 @@ export const CbtExamView: React.FC<CbtExamViewProps> = ({
                 >
                   {questionTimeRemaining > 0 ? (
                     <>
-                      <Lock className="w-4 h-4 text-amber-400" />
-                      <span>Soal Selanjutnya ({questionTimeRemaining}s)</span>
+                      <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
+                      <span className="sm:hidden">Lanjut ({questionTimeRemaining}s)</span>
+                      <span className="hidden sm:inline">Soal Selanjutnya ({questionTimeRemaining}s)</span>
                     </>
                   ) : (
                     <>
-                      <span>Soal Selanjutnya</span>
-                      <ArrowRight className="w-4 h-4" />
+                      <span className="sm:hidden">Lanjut</span>
+                      <span className="hidden sm:inline">Soal Selanjutnya</span>
+                      <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </>
                   )}
                 </button>
@@ -635,7 +649,7 @@ export const CbtExamView: React.FC<CbtExamViewProps> = ({
                     if (questionTimeRemaining > 0) return;
                     setShowSubmitConfirmModal(true);
                   }}
-                  className={`flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold shadow-md transition-all ${
+                  className={`flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2 rounded-xl text-xs font-bold shadow-md transition-all ${
                     questionTimeRemaining > 0
                       ? 'bg-emerald-950/40 border border-emerald-900/40 text-emerald-400/50 cursor-not-allowed opacity-60'
                       : 'bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer shadow-emerald-900/50 hover:scale-[1.02]'
@@ -648,13 +662,15 @@ export const CbtExamView: React.FC<CbtExamViewProps> = ({
                 >
                   {questionTimeRemaining > 0 ? (
                     <>
-                      <Lock className="w-4 h-4 text-amber-400" />
-                      <span>Selesai Ujian ({questionTimeRemaining}s)</span>
+                      <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
+                      <span className="sm:hidden">Selesai ({questionTimeRemaining}s)</span>
+                      <span className="hidden sm:inline">Selesai Ujian ({questionTimeRemaining}s)</span>
                     </>
                   ) : (
                     <>
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>Selesai Ujian</span>
+                      <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      <span className="sm:hidden">Selesai</span>
+                      <span className="hidden sm:inline">Selesai Ujian</span>
                     </>
                   )}
                 </button>
@@ -1418,10 +1434,11 @@ export const CbtExamView: React.FC<CbtExamViewProps> = ({
               setSelectedExamIdForRecap('all');
               setShowRecapModal(true);
             }}
-            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-purple-900/60 hover:bg-purple-800 border border-purple-500/60 text-amber-300 text-xs font-bold shadow-md transition-all cursor-pointer hover:border-amber-400"
+            className="flex items-center gap-1.5 px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl bg-purple-900/60 hover:bg-purple-800 border border-purple-500/60 text-amber-300 text-xs font-bold shadow-md transition-all cursor-pointer hover:border-amber-400"
           >
             <Users className="w-4 h-4 text-amber-400" />
-            <span>Rekapan Pengerjaan CBT ({examResults.length})</span>
+            <span className="sm:hidden">Rekap ({examResults.length})</span>
+            <span className="hidden sm:inline">Rekapan Pengerjaan CBT ({examResults.length})</span>
           </button>
 
           {currentUser.role !== 'student' && (
@@ -1431,16 +1448,18 @@ export const CbtExamView: React.FC<CbtExamViewProps> = ({
                   setSelectedExamForAnalysis(null);
                   setShowExamAnalysisModal(true);
                 }}
-                className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-600/60 text-cyan-200 text-xs font-bold shadow-md transition-all cursor-pointer hover:border-cyan-400"
+                className="flex items-center gap-1.5 px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-600/60 text-cyan-200 text-xs font-bold shadow-md transition-all cursor-pointer hover:border-cyan-400"
               >
                 <BarChart3 className="w-4 h-4 text-cyan-400" />
-                <span>Analisis Butir Soal CBT</span>
+                <span className="sm:hidden">Analisis Soal</span>
+                <span className="hidden sm:inline">Analisis Butir Soal CBT</span>
               </button>
               <button
                 onClick={() => setShowCreateCbtModal(true)}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-emerald-600 hover:from-purple-500 hover:to-emerald-500 text-white text-xs font-bold shadow-lg shadow-purple-950 transition-all hover:scale-[1.02] cursor-pointer"
+                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-emerald-600 hover:from-purple-500 hover:to-emerald-500 text-white text-xs font-bold shadow-lg shadow-purple-950 transition-all hover:scale-[1.02] cursor-pointer"
               >
-                <span>+ Buat Jadwal CBT & Susun Soal CBT</span>
+                <span className="sm:hidden">+ Jadwal CBT</span>
+                <span className="hidden sm:inline">+ Buat Jadwal CBT & Susun Soal CBT</span>
               </button>
             </>
           )}
@@ -1552,7 +1571,8 @@ export const CbtExamView: React.FC<CbtExamViewProps> = ({
                 className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-purple-950 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-[1.01]"
               >
                 <Cpu className="w-4 h-4 text-emerald-300" />
-                Mulai Ujian CBT Sekarang
+                <span className="sm:hidden">Mulai Ujian</span>
+                <span className="hidden sm:inline">Mulai Ujian CBT Sekarang</span>
               </button>
 
               <button
@@ -1563,7 +1583,10 @@ export const CbtExamView: React.FC<CbtExamViewProps> = ({
                 className="w-full py-2 rounded-xl bg-purple-950/80 hover:bg-purple-900 border border-purple-700/60 text-purple-200 hover:text-white font-semibold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all"
               >
                 <Users className="w-3.5 h-3.5 text-amber-400" />
-                <span>
+                <span className="sm:hidden">
+                  Rekap ({((examResults || []).filter((r) => r.examId === exam.id)).length})
+                </span>
+                <span className="hidden sm:inline">
                   Lihat Rekap ({((examResults || []).filter((r) => r.examId === exam.id)).length} Pengerjaan)
                 </span>
               </button>
@@ -1577,7 +1600,8 @@ export const CbtExamView: React.FC<CbtExamViewProps> = ({
                   className="w-full py-2.5 rounded-xl bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/60 hover:border-cyan-400 text-cyan-200 font-bold text-xs shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-[1.01]"
                 >
                   <BarChart3 className="w-4 h-4 text-cyan-400" />
-                  <span>Analisis Butir Soal CBT</span>
+                  <span className="sm:hidden">Analisis Soal</span>
+                  <span className="hidden sm:inline">Analisis Butir Soal CBT</span>
                 </button>
               )}
             </div>

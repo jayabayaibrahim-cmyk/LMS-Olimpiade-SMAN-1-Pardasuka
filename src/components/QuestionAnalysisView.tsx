@@ -250,17 +250,19 @@ export const QuestionAnalysisView: React.FC<QuestionAnalysisViewProps> = ({
           <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
             <button
               onClick={handlePrint}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold transition-all shadow-lg shadow-purple-950/60 cursor-pointer"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold transition-all shadow-lg shadow-purple-950/60 cursor-pointer"
             >
               <Printer className="w-4 h-4 text-amber-300" />
-              <span>Cetak Laporan Analisis (PDF)</span>
+              <span className="sm:hidden">Cetak PDF</span>
+              <span className="hidden sm:inline">Cetak Laporan Analisis (PDF)</span>
             </button>
             {onClose ? (
               <button
                 onClick={onClose}
-                className="px-3.5 py-2.5 rounded-xl bg-purple-950/80 hover:bg-purple-900 border border-purple-800/60 text-purple-200 text-xs font-semibold cursor-pointer"
+                className="px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl bg-purple-950/80 hover:bg-purple-900 border border-purple-800/60 text-purple-200 text-xs font-semibold cursor-pointer"
               >
-                Kembali ke Katalog CBT
+                <span className="sm:hidden">Kembali</span>
+                <span className="hidden sm:inline">Kembali ke Katalog CBT</span>
               </button>
             ) : (
               setActiveTab && (
@@ -268,7 +270,7 @@ export const QuestionAnalysisView: React.FC<QuestionAnalysisViewProps> = ({
                   onClick={() => setActiveTab('cbt')}
                   className="px-3 py-2 rounded-xl bg-purple-950/80 hover:bg-purple-900 border border-purple-800/60 text-purple-200 text-xs font-semibold cursor-pointer"
                 >
-                  Kembali ke CBT
+                  Kembali
                 </button>
               )
             )}
@@ -477,7 +479,8 @@ export const QuestionAnalysisView: React.FC<QuestionAnalysisViewProps> = ({
                           onClick={() => setExpandedQuestionId(isExpanded ? null : q.id)}
                           className="px-2.5 py-1 rounded-lg bg-purple-950 hover:bg-purple-900 border border-purple-800 text-purple-200 text-xs font-semibold flex items-center gap-1 cursor-pointer"
                         >
-                          <span>{isExpanded ? 'Tutup Narasi' : 'Buka Detail & Pengecoh'}</span>
+                          <span className="sm:hidden">{isExpanded ? 'Tutup' : 'Detail'}</span>
+                          <span className="hidden sm:inline">{isExpanded ? 'Tutup Narasi' : 'Buka Detail & Pengecoh'}</span>
                           <ChevronDown
                             className={`w-3.5 h-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                           />

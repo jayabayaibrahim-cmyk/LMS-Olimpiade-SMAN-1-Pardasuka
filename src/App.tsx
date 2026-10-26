@@ -499,17 +499,17 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4 text-[11px]">
+          <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-3 gap-y-1.5 text-[11px] text-center sm:text-right">
             <span className="flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              Sistem 1-Device Terproteksi
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              Sistem 1-Device
             </span>
-            <span>•</span>
-            <span>Jadwal Bimbingan & CBT Terpisah</span>
-            <span>•</span>
-            <span>AI Bloom & SOLO Engine</span>
-            <span>•</span>
-            <span>Google Apps Script Sync</span>
+            <span className="text-purple-600">•</span>
+            <span>Bimbingan & CBT</span>
+            <span className="text-purple-600">•</span>
+            <span>AI Bloom & SOLO</span>
+            <span className="text-purple-600">•</span>
+            <span>GAS Sync</span>
           </div>
         </div>
       </footer>

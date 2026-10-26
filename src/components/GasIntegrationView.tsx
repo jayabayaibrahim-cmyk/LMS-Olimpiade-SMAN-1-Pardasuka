@@ -69,20 +69,22 @@ export const GasIntegrationView: React.FC<GasIntegrationViewProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
           <button
             onClick={() => exportResultsToCsv(examResults)}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-950 border border-purple-700/60 hover:bg-purple-900 text-xs font-semibold text-purple-200 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-xl bg-purple-950 border border-purple-700/60 hover:bg-purple-900 text-xs font-semibold text-purple-200 transition-colors cursor-pointer"
           >
             <Download className="w-4 h-4 text-emerald-400" />
-            <span>Download CSV Rekap Nilai</span>
+            <span className="sm:hidden">CSV Nilai</span>
+            <span className="hidden sm:inline">Download CSV Rekap Nilai</span>
           </button>
           <button
             onClick={() => exportQuestionsToCsv(questions)}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-950 border border-purple-700/60 hover:bg-purple-900 text-xs font-semibold text-purple-200 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-xl bg-purple-950 border border-purple-700/60 hover:bg-purple-900 text-xs font-semibold text-purple-200 transition-colors cursor-pointer"
           >
             <Download className="w-4 h-4 text-blue-400" />
-            <span>Download CSV Bank Soal</span>
+            <span className="sm:hidden">CSV Soal</span>
+            <span className="hidden sm:inline">Download CSV Bank Soal</span>
           </button>
         </div>
       </div>

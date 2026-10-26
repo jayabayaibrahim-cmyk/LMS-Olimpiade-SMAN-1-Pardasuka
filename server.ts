@@ -1,6 +1,6 @@
 import express from 'express';
 import { createServer as createViteServer } from 'vite';
-import { GoogleGenAI, Type } from '@google/genai';
+import { GoogleGenAI, Type, ThinkingLevel } from '@google/genai';
 import dotenv from 'dotenv';
 import path from 'path';
 
@@ -169,12 +169,13 @@ app.post('/api/ai/generate-questions', async (req, res) => {
       topic = 'Aljabar dan Teori Bilangan',
       customPrompt = '',
       questionType = 'pilihan_ganda', // 'pilihan_ganda' | 'esai' | 'bergambar'
-      reasoningLevel = 'sedang', // 'standar' | 'sedang' | 'tinggi'
+      modelEngine = 'gemini-3.8-flash',
+      reasoningLevel = 'sedang',
+      apiKey = '',
     } = req.body;
 
     const systemPrompt = `Anda adalah Tim Ahli Penyusun Soal Olimpiade Sains Nasional (OSN) dari Kemendikbudristek / Puspresnas dan Pembina Olimpiade SMAN 1 PARDASUKA.
 Tugas Anda adalah menyusun soal olimpiade sains yang berkualitas tinggi, orisinal, menantang (HOTS), sesuai dengan Taksonomi Bloom dan Taksonomi SOLO.
-Mode Penalaran: ${reasoningLevel.toUpperCase()} (Terapkan Chain-of-Thought / penalaran ilmiah bertahap sebelum merumuskan jawaban).
 
 DISIPLIN BIDANG MATA PELAJARAN (SANGAT KRUSIAL & MUTLAK):
 - Bidang Mata Pelajaran: ${subject}
@@ -197,7 +198,6 @@ Spesifikasi Permintaan:
 - Taksonomi SOLO Target: ${soloTaxonomy}
 - Topik / Materi Khusus: ${topic}
 - Jumlah Soal: ${count} butir
-- Mode Penalaran: ${reasoningLevel}
 - Tipe Format Soal: ${questionType} (pilihan_ganda = PG 5 opsi A-E; esai = soal uraian analisis mendalam dengan rubrik dan kunci esai; bergambar = soal yang dilengkapi diagram visual/skema ilmiah SVG)
 ${customPrompt ? `- Catatan Khusus Pengajar: ${customPrompt}` : ''}
 
@@ -207,17 +207,42 @@ Panduan Format Output:
 - Jika tipe 'bergambar': sediakan diagramSvg (kode SVG valid dan clean yang menggambarkan skema ilmiah ${subject}) dan imageCaption keterangan gambar, serta options A-E.
 - explanation: PEMBAHASAN HARUS MURNI DAN SPESIFIK BIDANG ${subject}, menjabarkan konsep ilmiah secara komprehensif langkah demi langkah, rumus atau reaksi yang dipakai, dan alasan pilihan jawaban benar.`;
 
-    // Attempt Gemini call
-    if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'MY_GEMINI_API_KEY') {
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: `Gunakan penalaran ilmiah ${reasoningLevel}: Buatkan ${count} butir soal ${subject} bertipe ${questionType} tingkat ${level} dengan topik "${topic}", Taksonomi Bloom "${bloomTaxonomy}", dan Taksonomi SOLO "${soloTaxonomy}". Pastikan 100% soal dan pembahasan ilmiah adalah murni materi ${subject}.`,
+    // Determine target model & reasoning level
+    const isArgon = modelEngine === 'gemini-4-argon' || modelEngine === 'gemini-4';
+    const targetModel = isArgon ? 'gemini-4-argon' : 'gemini-3.8-flash';
+
+    let chosenThinkingLevel = ThinkingLevel.MEDIUM;
+    if (reasoningLevel === 'rendah' || reasoningLevel === 'low') {
+      chosenThinkingLevel = ThinkingLevel.LOW;
+    } else if (reasoningLevel === 'tinggi' || reasoningLevel === 'high') {
+      chosenThinkingLevel = ThinkingLevel.HIGH;
+    }
+
+    const activeApiKey = (apiKey && typeof apiKey === 'string' && apiKey.trim() !== '' && apiKey !== 'MY_GEMINI_API_KEY')
+      ? apiKey.trim()
+      : (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'MY_GEMINI_API_KEY' ? process.env.GEMINI_API_KEY : '');
+
+    const effectiveAi = activeApiKey
+      ? new GoogleGenAI({
+          apiKey: activeApiKey,
+          httpOptions: {
+            headers: {
+              'User-Agent': 'aistudio-build',
+            },
+          },
+        })
+      : null;
+
+    if (effectiveAi) {
+      const response = await effectiveAi.models.generateContent({
+        model: targetModel,
+        contents: `Buatkan ${count} butir soal ${subject} bertipe ${questionType} tingkat ${level} dengan topik "${topic}", Taksonomi Bloom "${bloomTaxonomy}", dan Taksonomi SOLO "${soloTaxonomy}". Pastikan 100% soal dan pembahasan ilmiah adalah murni materi ${subject}.`,
         config: {
           systemInstruction: systemPrompt,
-          thinkingConfig: {
-            thinkingBudget: reasoningLevel === 'tinggi' ? 4096 : reasoningLevel === 'sedang' ? 2048 : 0,
-          },
           responseMimeType: 'application/json',
+          thinkingConfig: {
+            thinkingLevel: chosenThinkingLevel,
+          },
           responseSchema: {
             type: Type.ARRAY,
             items: {
@@ -255,8 +280,10 @@ Panduan Format Output:
       return res.json({
         success: true,
         questions: parsed,
-        source: `gemini-3.8-flash (penalaran ${reasoningLevel})`,
-        note: `Berhasil disusun via Engine Gemini 3.8 Flash (Mode Penalaran ${reasoningLevel.toUpperCase()}).`,
+        source: targetModel,
+        modelEngine: targetModel,
+        reasoningLevel,
+        note: `Berhasil di-generate menggunakan Engine ${targetModel === 'gemini-4-argon' ? 'Gemini 4 Argon' : 'Gemini 3.8 Flash'} (Penalaran: ${reasoningLevel.toUpperCase()}).`,
       });
     }
 
@@ -274,12 +301,14 @@ Panduan Format Output:
       success: true,
       questions: fallbackQuestions,
       source: 'kurikulum-internal-sman1pardasuka',
+      modelEngine: targetModel,
+      reasoningLevel,
       note: `Menggunakan generator bank kurikulum terkalibrasi SMAN 1 Pardasuka (Bidang: ${subject}).`,
     });
   } catch (error: any) {
     console.error('Error generating questions:', error);
     // Provide guaranteed fallback matching the exact requested subject
-    const { subject, level, bloomTaxonomy, soloTaxonomy, count, topic, questionType } = req.body;
+    const { subject, level, bloomTaxonomy, soloTaxonomy, count, topic, questionType, modelEngine, reasoningLevel } = req.body;
     const fallback = generateFallbackCurriculumQuestions(
       subject || 'Matematika',
       level || 'Kabupaten (OSN-K)',
@@ -293,7 +322,9 @@ Panduan Format Output:
       success: true,
       questions: fallback,
       source: 'kurikulum-internal-fallback',
-      message: `Soal ${subject || 'OSN'} berhasil dirangkai dari bank silabus terstandar.`,
+      modelEngine: modelEngine || 'gemini-3.8-flash',
+      reasoningLevel: reasoningLevel || 'sedang',
+      message: `Soal ${subject || 'OSN'} berhasil dirangkai dari bank silabus terstandar SMAN 1 Pardasuka.`,
     });
   }
 });
@@ -301,11 +332,36 @@ Panduan Format Output:
 // 3. AI Learning Feedback & Explanation endpoint
 app.post('/api/ai/explain-question', async (req, res) => {
   try {
-    const { questionText, studentAnswer, correctAnswer, subject } = req.body;
+    const { questionText, studentAnswer, correctAnswer, subject, modelEngine = 'gemini-3.8-flash', reasoningLevel = 'sedang', apiKey = '' } = req.body;
 
-    if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'MY_GEMINI_API_KEY') {
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
+    const isArgon = modelEngine === 'gemini-4-argon' || modelEngine === 'gemini-4';
+    const targetModel = isArgon ? 'gemini-4-argon' : 'gemini-3.8-flash';
+
+    let chosenThinkingLevel = ThinkingLevel.MEDIUM;
+    if (reasoningLevel === 'rendah' || reasoningLevel === 'low') {
+      chosenThinkingLevel = ThinkingLevel.LOW;
+    } else if (reasoningLevel === 'tinggi' || reasoningLevel === 'high') {
+      chosenThinkingLevel = ThinkingLevel.HIGH;
+    }
+
+    const activeApiKey = (apiKey && typeof apiKey === 'string' && apiKey.trim() !== '' && apiKey !== 'MY_GEMINI_API_KEY')
+      ? apiKey.trim()
+      : (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'MY_GEMINI_API_KEY' ? process.env.GEMINI_API_KEY : '');
+
+    const effectiveAi = activeApiKey
+      ? new GoogleGenAI({
+          apiKey: activeApiKey,
+          httpOptions: {
+            headers: {
+              'User-Agent': 'aistudio-build',
+            },
+          },
+        })
+      : null;
+
+    if (effectiveAi) {
+      const response = await effectiveAi.models.generateContent({
+        model: targetModel,
         contents: `Berikan pembinaan pedagogis singkat untuk siswa SMAN 1 Pardasuka yang sedang berlatih OSN ${subject}:
 Soal: "${questionText}"
 Jawaban Siswa: "${studentAnswer}"
@@ -315,14 +371,20 @@ Tuliskan dalam 3 bagian singkat dalam disiplin ilmu ${subject}:
 1. Mengapa pilihan siswa mungkin keliru / jebakan soal yang umum dalam ${subject}.
 2. Konsep kunci / rumus rahasia penyelesaian cepat dalam ${subject}.
 3. Kata-kata motivasi pembina olimpiade sains ${subject}.`,
+        config: {
+          thinkingConfig: {
+            thinkingLevel: chosenThinkingLevel,
+          },
+        },
       });
 
-      return res.json({ success: true, explanation: response.text });
+      return res.json({ success: true, explanation: response.text, engineUsed: targetModel, reasoningLevel });
     }
 
     return res.json({
       success: true,
       explanation: `Analisis Bimbingan Olimpiade Sains SMAN 1 Pardasuka (${subject}):\n\n1. Analisis Konsep: Perhatikan asumsi kondisi awal dan syarat batas reaksi/persamaan pada bidang ${subject}.\n2. Konsep Kunci: Terapkan prinsip dasar dan hukum sains fundamental secara terstruktur.\n3. Motivasi: Terus berlatih dan kuasai konsep hingga tingkat Extended Abstract!`,
+      engineUsed: 'kurikulum-internal-sman1pardasuka',
     });
   } catch (error: any) {
     return res.json({
